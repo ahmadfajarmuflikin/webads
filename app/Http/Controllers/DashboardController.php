@@ -27,8 +27,8 @@ class DashboardController extends Controller
     public function index(): View
     {
         $account = AdAccount::first();
-        $campaigns = Campaign::with('adSets')->get();
-        $adsets = AdSet::with(['campaign', 'adAccount'])->get();
+        $campaigns = Campaign::with('adSets.ads')->get();
+        $adsets = AdSet::with(['campaign', 'adAccount', 'ads'])->get();
 
         // Evaluasi semua adset dengan Smart Engine
         $evaluatedAdsets = [];
@@ -188,6 +188,10 @@ class DashboardController extends Controller
             'status' => 'required|string|in:PAUSED,ACTIVE',
             'adset_name' => 'nullable|string|max:255',
             'adset_budget' => 'nullable|numeric|min:10000',
+            'ad_media_type' => 'nullable|string|in:IMAGE,VIDEO',
+            'ad_cta' => 'nullable|string',
+            'ad_headline' => 'nullable|string|max:255',
+            'ad_primary_text' => 'nullable|string',
         ]);
 
         $account = AdAccount::where('status', 'ACTIVE')->first();

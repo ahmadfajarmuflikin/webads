@@ -97,7 +97,47 @@ class SyncMetaInsightsJob implements ShouldQueue
                     Log::warning("Could not sync adsets: {$e->getMessage()}");
                 }
 
-                // 3. Sync Insights (Performance Metrics)
+                // 3. Sync Ads & Creatives (Gambar & Video)
+                try {
+                    $ads = $metaAcc->getAds([
+                        \FacebookAds\Object\Fields\AdFields::ID,
+                        \FacebookAds\Object\Fields\AdFields::ADSET_ID,
+                        \FacebookAds\Object\Fields\AdFields::NAME,
+                        \FacebookAds\Object\Fields\AdFields::STATUS,
+                        'creative{id,name,title,body,image_url,thumbnail_url,video_id}',
+                    ]);
+
+                    foreach ($ads as $ad) {
+                        $adData = $ad->getData();
+                        $adset = AdSet::where('meta_adset_id', $adData['adset_id'])->first();
+                        if ($adset) {
+                            $creative = $adData['creative'] ?? [];
+                            $isVideo = !empty($creative['video_id']);
+                            $mediaType = $isVideo ? 'VIDEO' : 'IMAGE';
+                            $previewUrl = $creative['thumbnail_url'] ?? $creative['image_url'] ?? null;
+
+                            \App\Models\Ad::updateOrCreate(
+                                ['meta_ad_id' => $adData['id']],
+                                [
+                                    'ad_set_id' => $adset->id,
+                                    'name' => $adData['name'] ?? 'Ad ' . $adData['id'],
+                                    'status' => $adData['status'] ?? 'ACTIVE',
+                                    'creative_payload' => [
+                                        'media_type' => $mediaType,
+                                        'headline' => $creative['title'] ?? $creative['name'] ?? '',
+                                        'primary_text' => $creative['body'] ?? '',
+                                        'preview_url' => $previewUrl,
+                                        'video_id' => $creative['video_id'] ?? null,
+                                    ],
+                                ]
+                            );
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Could not sync ads & creatives: {$e->getMessage()}");
+                }
+
+                // 4. Sync Insights (Performance Metrics)
                 $params = [
                     'date_preset' => $this->datePreset,
                     'level' => 'adset',

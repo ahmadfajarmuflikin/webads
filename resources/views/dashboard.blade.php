@@ -153,6 +153,46 @@
                     </div>
                 </div>
 
+                <!-- Section Materi Iklan (Creative Gambar & Video) -->
+                <div class="p-3.5 bg-slate-950/70 border border-slate-800 rounded-xl space-y-3">
+                    <div class="flex items-center justify-between">
+                        <span class="font-semibold text-slate-200 flex items-center gap-1.5">
+                            <i class="fa-solid fa-photo-film text-purple-400"></i>
+                            Materi Iklan (Creative Asset)
+                        </span>
+                        <span class="text-[10px] bg-slate-800 text-slate-400 px-2 py-0.5 rounded">Opsional</span>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                            <label class="block text-slate-400 mb-1">Format Media</label>
+                            <select name="ad_media_type" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-purple-500">
+                                <option value="IMAGE">🖼️ Gambar / Banner (Image)</option>
+                                <option value="VIDEO">🎬 Video (Reels / Feed)</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-slate-400 mb-1">Call to Action (CTA)</label>
+                            <select name="ad_cta" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1.5 text-white focus:outline-none focus:border-purple-500">
+                                <option value="ORDER_NOW">Pesan Sekarang (Order Now)</option>
+                                <option value="SEND_WHATSAPP_MESSAGE">Kirim Pesan WhatsApp</option>
+                                <option value="LEARN_MORE">Selengkapnya (Learn More)</option>
+                                <option value="SHOP_NOW">Beli Sekarang (Shop Now)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-400 mb-1">Headline Iklan (Judul Singkat)</label>
+                        <input type="text" name="ad_headline" placeholder="contoh: Solusi Undangan Pernikahan Mewah Mulai 99rb" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-400 mb-1">Teks Utama Iklan (Primary Text)</label>
+                        <textarea name="ad_primary_text" rows="2" placeholder="contoh: Buat undangan digital tanpa ribet dengan fitur RSVP, musik, galeri foto, & buku tamu otomatis..." class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500"></textarea>
+                    </div>
+                </div>
+
                 <!-- AI Copywriting Inspiration Preview -->
                 <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-2">
                     <div class="flex items-center justify-between text-[11px]">
@@ -369,6 +409,26 @@
                                     <span class="inline-block px-1.5 py-0.2 rounded {{ $item['status'] === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400' }} text-[10px]">
                                         {{ $item['status'] }}
                                     </span>
+                                </div>
+                                <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
+                                    <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                                        📁 {{ $item['model']->campaign?->name ?? 'Campaign' }}
+                                    </span>
+                                    @php
+                                        $ads = $item['model']->ads ?? collect();
+                                        $videoCount = $ads->filter(fn($ad) => ($ad->creative_payload['media_type'] ?? '') === 'VIDEO')->count();
+                                        $imageCount = $ads->filter(fn($ad) => ($ad->creative_payload['media_type'] ?? '') === 'IMAGE')->count();
+                                    @endphp
+                                    @if($videoCount > 0)
+                                        <span class="text-[10px] bg-purple-950/80 border border-purple-500/40 text-purple-300 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
+                                            <i class="fa-solid fa-film"></i> {{ $videoCount }} Video Ads
+                                        </span>
+                                    @endif
+                                    @if($imageCount > 0)
+                                        <span class="text-[10px] bg-sky-950/80 border border-sky-500/40 text-sky-300 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
+                                            <i class="fa-solid fa-image"></i> {{ $imageCount }} Image Ads
+                                        </span>
+                                    @endif
                                 </div>
                             </td>
 

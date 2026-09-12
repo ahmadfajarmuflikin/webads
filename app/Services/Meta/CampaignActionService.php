@@ -173,6 +173,18 @@ class CampaignActionService
                 'status' => $status,
                 'targeting' => $data['targeting'] ?? ['geo_locations' => ['countries' => ['ID']]],
             ]);
+
+            // Jika user juga mengisi materi iklan (gambar/video)
+            if (!empty($data['ad_headline']) || !empty($data['ad_primary_text'])) {
+                $this->createAd($account, $createdAdSet, [
+                    'name' => 'Ad - ' . ($data['ad_headline'] ?: $data['name']),
+                    'media_type' => $data['ad_media_type'] ?? 'IMAGE',
+                    'headline' => $data['ad_headline'] ?? '',
+                    'primary_text' => $data['ad_primary_text'] ?? '',
+                    'call_to_action' => $data['ad_cta'] ?? 'ORDER_NOW',
+                    'status' => $status,
+                ]);
+            }
         }
 
         return [
@@ -222,6 +234,29 @@ class CampaignActionService
             'daily_budget' => $budget,
             'optimization_goal' => 'LINK_CLICKS',
             'targeting' => $data['targeting'] ?? ['geo_locations' => ['countries' => ['ID']]],
+        ]);
+    }
+
+    /**
+     * Membuat Ad & Creative (Gambar / Video) di bawah AdSet
+     */
+    public function createAd(AdAccount $account, AdSet $adset, array $data): \App\Models\Ad
+    {
+        $metaAdId = 'meta_ad_' . time() . '_' . rand(100, 999);
+        $status = strtoupper($data['status'] ?? 'PAUSED');
+
+        return \App\Models\Ad::create([
+            'ad_set_id' => $adset->id,
+            'meta_ad_id' => $metaAdId,
+            'name' => $data['name'] ?? 'New Ad Creative',
+            'status' => $status,
+            'creative_payload' => [
+                'media_type' => $data['media_type'] ?? 'IMAGE',
+                'headline' => $data['headline'] ?? '',
+                'primary_text' => $data['primary_text'] ?? '',
+                'call_to_action' => $data['call_to_action'] ?? 'ORDER_NOW',
+                'preview_url' => $data['preview_url'] ?? null,
+            ],
         ]);
     }
 }
