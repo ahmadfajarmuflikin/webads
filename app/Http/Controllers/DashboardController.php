@@ -28,8 +28,17 @@ class DashboardController extends Controller
     public function index(): View
     {
         $account = AdAccount::first();
+        $filterStatus = request('filter_status', 'all'); // 'all', 'active', 'paused'
+
         $campaigns = Campaign::with('adSets.ads')->get();
-        $adsets = AdSet::with(['campaign', 'adAccount', 'ads'])->get();
+        
+        $adsetsQuery = AdSet::with(['campaign', 'adAccount', 'ads']);
+        if ($filterStatus === 'active') {
+            $adsetsQuery->where('status', 'ACTIVE');
+        } elseif ($filterStatus === 'paused') {
+            $adsetsQuery->where('status', '!=', 'ACTIVE');
+        }
+        $adsets = $adsetsQuery->get();
 
         // Evaluasi semua adset dengan Smart Engine
         $evaluatedAdsets = [];
@@ -59,6 +68,7 @@ class DashboardController extends Controller
                 'overall_cpa' => $overallCpa,
             ],
             'auditLogs' => $auditLogs,
+            'filterStatus' => $filterStatus,
         ]);
     }
 

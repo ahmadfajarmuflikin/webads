@@ -525,16 +525,25 @@
                     </h2>
                     <p class="text-xs text-slate-400 mt-0.5">Analisis efektivitas performa 3 hari terakhir dengan rekomendasi aksi otomatis</p>
                 </div>
-                <div class="flex items-center gap-2 text-xs">
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-emerald-950/60 border border-emerald-600/40 text-emerald-400">
-                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> SCALING
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-red-950/60 border border-red-600/40 text-red-400">
-                        <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> BONCOS / KILL
-                    </span>
-                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-amber-950/60 border border-amber-600/40 text-amber-400">
-                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> FATIGUE
-                    </span>
+                <div class="flex flex-wrap items-center gap-3">
+                    <!-- Filter Tab Status -->
+                    <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-medium">
+                        <a href="{{ request()->fullUrlWithQuery(['filter_status' => 'all']) }}" class="px-2.5 py-1 rounded-md transition {{ ($filterStatus ?? 'all') === 'all' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white' }}">Semua</a>
+                        <a href="{{ request()->fullUrlWithQuery(['filter_status' => 'active']) }}" class="px-2.5 py-1 rounded-md transition {{ ($filterStatus ?? '') === 'active' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white' }}">🟢 Hanya Aktif</a>
+                        <a href="{{ request()->fullUrlWithQuery(['filter_status' => 'paused']) }}" class="px-2.5 py-1 rounded-md transition {{ ($filterStatus ?? '') === 'paused' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white' }}">⏸ Nonaktif (Paused)</a>
+                    </div>
+
+                    <div class="flex items-center gap-2 text-xs">
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-600/40 text-emerald-400 text-[11px]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> SCALING
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-950/60 border border-red-600/40 text-red-400 text-[11px]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> BONCOS / KILL
+                        </span>
+                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 border border-amber-600/40 text-amber-400 text-[11px]">
+                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> FATIGUE
+                        </span>
+                    </div>
                 </div>
             </div>
 

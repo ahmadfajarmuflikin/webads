@@ -45,18 +45,22 @@ class SyncMetaInsightsJob implements ShouldQueue
                         CampaignFields::NAME,
                         CampaignFields::OBJECTIVE,
                         CampaignFields::STATUS,
+                        CampaignFields::EFFECTIVE_STATUS,
                         CampaignFields::DAILY_BUDGET,
                     ]);
 
                     foreach ($campaigns as $camp) {
                         $cData = $camp->getData();
+                        $effStatus = $cData['effective_status'] ?? $cData['status'] ?? 'PAUSED';
+                        $realStatus = ($effStatus === 'ACTIVE') ? 'ACTIVE' : (($effStatus === 'ARCHIVED' || $effStatus === 'DELETED') ? 'ARCHIVED' : 'PAUSED');
+
                         Campaign::updateOrCreate(
                             ['meta_campaign_id' => $cData['id']],
                             [
                                 'ad_account_id' => $account->id,
                                 'name' => $cData['name'] ?? 'Campaign ' . $cData['id'],
                                 'objective' => $cData['objective'] ?? 'OUTCOME_SALES',
-                                'status' => $cData['status'] ?? 'ACTIVE',
+                                'status' => $realStatus,
                                 'daily_budget' => isset($cData['daily_budget']) ? ($cData['daily_budget'] / 100) : null,
                             ]
                         );
@@ -72,6 +76,7 @@ class SyncMetaInsightsJob implements ShouldQueue
                         AdSetFields::CAMPAIGN_ID,
                         AdSetFields::NAME,
                         AdSetFields::STATUS,
+                        AdSetFields::EFFECTIVE_STATUS,
                         AdSetFields::DAILY_BUDGET,
                         AdSetFields::OPTIMIZATION_GOAL,
                     ]);
@@ -80,13 +85,17 @@ class SyncMetaInsightsJob implements ShouldQueue
                         $aData = $adset->getData();
                         $campaign = Campaign::where('meta_campaign_id', $aData['campaign_id'])->first();
                         if ($campaign) {
+                            $effStatus = $aData['effective_status'] ?? $aData['status'] ?? 'PAUSED';
+                            // Jika campaign parent tidak aktif atau effective status bukan ACTIVE, maka adset PAUSED
+                            $realStatus = ($campaign->status === 'ACTIVE' && $effStatus === 'ACTIVE') ? 'ACTIVE' : 'PAUSED';
+
                             AdSet::updateOrCreate(
                                 ['meta_adset_id' => $aData['id']],
                                 [
                                     'campaign_id' => $campaign->id,
                                     'ad_account_id' => $account->id,
                                     'name' => $aData['name'] ?? 'AdSet ' . $aData['id'],
-                                    'status' => $aData['status'] ?? 'ACTIVE',
+                                    'status' => $realStatus,
                                     'daily_budget' => isset($aData['daily_budget']) ? ($aData['daily_budget'] / 100) : 100000,
                                     'optimization_goal' => $aData['optimization_goal'] ?? 'OFFSITE_CONVERSIONS',
                                 ]
