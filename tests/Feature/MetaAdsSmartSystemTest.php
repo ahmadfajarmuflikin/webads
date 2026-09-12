@@ -139,4 +139,11 @@ class MetaAdsSmartSystemTest extends TestCase
             'target_id' => 'adset_boncos_002',
         ]);
     }
+
+    public function test_sync_data_web_route_executes_successfully(): void
+    {
+        $response = $this->post(route('meta.sync_web'), ['preset' => 'today']);
+        $response->assertRedirect(route('dashboard'));
+        $response->assertSessionHas('success');
+    }
 }

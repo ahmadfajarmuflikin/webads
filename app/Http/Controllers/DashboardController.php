@@ -10,6 +10,7 @@ use App\Models\AgentAuditLog;
 use App\Models\Campaign;
 use App\Services\Analytics\CampaignHealthEvaluator;
 use App\Services\Meta\CampaignActionService;
+use App\Services\Meta\MetaAdsClientService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -18,7 +19,8 @@ class DashboardController extends Controller
 {
     public function __construct(
         protected CampaignHealthEvaluator $evaluator,
-        protected CampaignActionService $actionService
+        protected CampaignActionService $actionService,
+        protected MetaAdsClientService $clientService
     ) {
     }
 
