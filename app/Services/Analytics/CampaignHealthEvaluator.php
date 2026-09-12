@@ -133,11 +133,34 @@ class CampaignHealthEvaluator
             $recommendedActions[] = 'MAINTAIN';
         }
 
+        // Cek status Level Campaign induk
+        $campaign = $adset->campaign;
+        $campaignStatus = $campaign?->status ?? 'ACTIVE';
+        $campaignName = $campaign?->name ?? 'Campaign';
+        $isCampaignActive = ($campaignStatus === 'ACTIVE');
+
+        // Effective status: Jika Campaign induk NONAKTIF, maka penayangan adset otomatis nonaktif (CAMPAIGN_PAUSED)
+        $effectiveStatus = ($isCampaignActive && $adset->status === 'ACTIVE')
+            ? 'ACTIVE'
+            : (!$isCampaignActive ? 'CAMPAIGN_PAUSED' : 'PAUSED');
+
+        if (!$isCampaignActive) {
+            $verdict = 'CAMPAIGN_PAUSED';
+            $healthScore = 30;
+            $riskLevel = 'LOW';
+            array_unshift($reasons, "⏸ Status Penayangan: NONAKTIF karena Campaign induk '{$campaignName}' berstatus {$campaignStatus}. Penayangan iklan otomatis terhenti.");
+            $recommendedActions = ['ACTIVATE_CAMPAIGN_FIRST'];
+        }
+
         return [
             'entity_type' => 'ADSET',
             'meta_id' => $adset->meta_adset_id,
             'name' => $adset->name,
-            'status' => $adset->status,
+            'status' => $effectiveStatus,
+            'raw_adset_status' => $adset->status,
+            'campaign_status' => $campaignStatus,
+            'campaign_name' => $campaignName,
+            'meta_campaign_id' => $campaign?->meta_campaign_id,
             'current_daily_budget' => (float) $adset->daily_budget,
             'timeframe_days' => $days,
             'verdict' => $verdict,

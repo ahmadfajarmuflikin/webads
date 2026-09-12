@@ -536,17 +536,34 @@
             </div>
         </div>
 
-        <!-- Smart System Evaluation Table -->
+        <!-- Smart System Evaluation & Multi-Level Control (Campaign & AdSet Level) -->
         <div class="bg-slate-900 border border-slate-800 rounded-2xl overflow-hidden shadow-xl">
-            <div class="px-6 py-5 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+            <div class="px-6 py-4 border-b border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
                 <div>
                     <h2 class="text-base font-bold text-white flex items-center gap-2">
                         <i class="fa-solid fa-brain text-indigo-400"></i>
                         Smart Evaluation Engine & Control Panel
                     </h2>
-                    <p class="text-xs text-slate-400 mt-0.5">Analisis efektivitas performa 3 hari terakhir dengan rekomendasi aksi otomatis</p>
+                    <p class="text-xs text-slate-400 mt-0.5">Analisis efektivitas performa penayangan dengan kontrol Level Campaign & Level AdSet</p>
                 </div>
-                <div class="flex flex-wrap items-center gap-3">
+            </div>
+
+            <!-- Level Switcher Tabs Header -->
+            <div class="px-6 pt-3 pb-0 bg-slate-950/60 border-b border-slate-800 flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center space-x-1">
+                    <button type="button" onclick="switchLevelView('adsets')" id="tabBtnAdsets" class="px-4 py-3 text-xs font-bold border-b-2 border-indigo-500 text-indigo-400 flex items-center gap-2 transition cursor-pointer">
+                        <i class="fa-solid fa-layer-group"></i>
+                        <span>Level AdSet & Penayangan</span>
+                        <span class="px-2 py-0.5 rounded-full bg-indigo-500/20 text-indigo-300 text-[10px] font-mono">{{ count($evaluatedAdsets) }}</span>
+                    </button>
+                    <button type="button" onclick="switchLevelView('campaigns')" id="tabBtnCampaigns" class="px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition cursor-pointer">
+                        <i class="fa-solid fa-bullhorn"></i>
+                        <span>Level Campaign & Status Induk</span>
+                        <span class="px-2 py-0.5 rounded-full bg-slate-800 text-slate-300 text-[10px] font-mono">{{ count($campaignList ?? []) }}</span>
+                    </button>
+                </div>
+
+                <div class="pb-3 flex flex-wrap items-center gap-3">
                     <!-- Live Search Box -->
                     <div class="relative">
                         <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
@@ -562,11 +579,12 @@
                 </div>
             </div>
 
-            <div class="overflow-x-auto">
+            <!-- VIEW 1: LEVEL ADSET & PENAYANGAN -->
+            <div id="levelAdsetsView" class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
                     <thead class="bg-slate-950/70 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800 text-[11px]">
                         <tr>
-                            <th class="px-6 py-3.5">AdSet & Info</th>
+                            <th class="px-6 py-3.5">AdSet & Status Penayangan</th>
                             <th class="px-4 py-3.5">Health Score</th>
                             <th class="px-4 py-3.5">Status Efektivitas</th>
                             <th class="px-4 py-3.5">Spend & Konversi</th>
@@ -586,14 +604,20 @@
                                 'CREATIVE_FATIGUE' => 'bg-amber-950/80 border-amber-500/60 text-amber-300',
                                 'HEALTHY_STABLE' => 'bg-blue-950/80 border-blue-500/60 text-blue-300',
                                 'LEARNING_PHASE' => 'bg-slate-800/80 border-slate-600/60 text-slate-300',
+                                'CAMPAIGN_PAUSED' => 'bg-amber-950/80 border-amber-500/60 text-amber-300',
                             ];
                             $vClass = $verdictColors[$item['verdict']] ?? 'bg-slate-800 border-slate-600 text-slate-300';
                             
+                            $cModel = $item['model']->campaign;
+                            $cStatus = $cModel?->status ?? 'ACTIVE';
+
                             $analysisPayload = [
                                 'meta_id' => $item['meta_id'],
                                 'name' => $item['name'],
-                                'campaign_name' => $item['model']->campaign?->name ?? 'Campaign',
+                                'campaign_name' => $cModel?->name ?? 'Campaign',
+                                'campaign_status' => $cStatus,
                                 'status' => $item['status'],
+                                'raw_adset_status' => $item['raw_adset_status'] ?? $item['status'],
                                 'daily_budget' => (float) $item['current_daily_budget'],
                                 'health_score' => $item['health_score'],
                                 'verdict' => $item['verdict'],
@@ -603,25 +627,47 @@
                                 'recommended_actions' => $item['recommended_actions'],
                             ];
                         @endphp
-                        <tr class="hover:bg-slate-800/30 transition adset-row" data-name="{{ strtolower($item['name'] . ' ' . ($item['model']->campaign?->name ?? '')) }}">
+                        <tr class="hover:bg-slate-800/30 transition adset-row" data-name="{{ strtolower($item['name'] . ' ' . ($cModel?->name ?? '')) }}">
                             <td class="px-6 py-3.5">
                                 <div class="font-semibold text-white text-sm hover:text-indigo-400 transition cursor-pointer" onclick="openAnalysisModal(this.closest('tr').querySelector('.btn-analisa'))">
                                     {{ $item['name'] }}
                                 </div>
                                 <div class="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-2 font-mono">
-                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {{ $item['status'] === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400 border border-slate-700' }}">
-                                        <span class="w-1.5 h-1.5 rounded-full {{ $item['status'] === 'ACTIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500' }}"></span>
-                                        {{ $item['status'] }}
-                                    </span>
+                                    <!-- Badge Status Penayangan Efektif -->
+                                    @if($item['status'] === 'ACTIVE')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                            🟢 TAYANG (ACTIVE)
+                                        </span>
+                                    @elseif($item['status'] === 'CAMPAIGN_PAUSED')
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/15 text-amber-300 border border-amber-500/30" title="Penayangan terhenti karena Campaign induk PAUSED di Meta">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                            ⏸ NONAKTIF (Campaign Paused)
+                                        </span>
+                                    @else
+                                        <span class="inline-flex items-center gap-1 px-2 py-0.5 rounded text-[10px] font-semibold bg-slate-800 text-slate-400 border border-slate-700">
+                                            <span class="w-1.5 h-1.5 rounded-full bg-slate-500"></span>
+                                            ⏸ NONAKTIF (AdSet Paused)
+                                        </span>
+                                    @endif
                                     <span>•</span>
                                     <span>ID: {{ $item['meta_id'] }}</span>
                                     <span>•</span>
                                     <span class="text-slate-300 font-medium">Rp {{ number_format($item['current_daily_budget'], 0, ',', '.') }}/hari</span>
                                 </div>
+
                                 <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                                    <span class="text-[10px] bg-slate-800/80 border border-slate-700/60 text-slate-300 px-2 py-0.5 rounded-md font-medium">
-                                        📁 {{ $item['model']->campaign?->name ?? 'Campaign' }}
+                                    <!-- Status Level Campaign Induk -->
+                                    <span class="text-[10px] bg-slate-800/90 border border-slate-700 text-slate-300 px-2 py-0.5 rounded-md font-medium flex items-center gap-1.5">
+                                        <span>📁 {{ $cModel?->name ?? 'Campaign' }}</span>
+                                        <span>•</span>
+                                        @if($cStatus === 'ACTIVE')
+                                            <span class="text-emerald-400 font-semibold">🟢 Campaign Aktif</span>
+                                        @else
+                                            <span class="text-amber-400 font-semibold">⏸ Campaign Nonaktif</span>
+                                        @endif
                                     </span>
+
                                     @php
                                         $ads = $item['model']->ads ?? collect();
                                         $videoCount = $ads->filter(fn($ad) => ($ad->creative_payload['format'] ?? $ad->creative_payload['media_type'] ?? '') === 'VIDEO')->count();
@@ -667,6 +713,8 @@
                                         ⚠️ FATIGUE
                                     @elseif($item['verdict'] === 'HEALTHY_STABLE')
                                         🟢 STABIL
+                                    @elseif($item['verdict'] === 'CAMPAIGN_PAUSED')
+                                        ⏸ CAMPAIGN PAUSED
                                     @else
                                         ⏳ {{ $item['verdict'] }}
                                     @endif
@@ -724,9 +772,9 @@
 
                             <td class="px-6 py-3.5 text-right whitespace-nowrap">
                                 <div class="flex items-center justify-end space-x-1.5">
-                                    <!-- Tombol Analisa Data Lengkap -->
+                                    <!-- Tombol Analisa Data Lengkap (Clean json_encode tanpa double htmlspecialchars) -->
                                     <button type="button" 
-                                        data-adset="{{ htmlspecialchars(json_encode($analysisPayload), ENT_QUOTES, 'UTF-8') }}" 
+                                        data-adset="{{ json_encode($analysisPayload) }}" 
                                         onclick="openAnalysisModal(this)" 
                                         class="btn-analisa px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer" 
                                         title="Lihat Analisa Data Lengkap & Conversion Funnel">
@@ -782,6 +830,104 @@
                                 <p class="text-xs font-semibold text-slate-300">Tidak ada adset atau campaign yang cocok dengan pencarian</p>
                             </td>
                         </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- VIEW 2: LEVEL CAMPAIGN & STATUS INDUK -->
+            <div id="levelCampaignsView" class="hidden overflow-x-auto">
+                <table class="w-full text-left text-xs">
+                    <thead class="bg-slate-950/70 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800 text-[11px]">
+                        <tr>
+                            <th class="px-6 py-3.5">Campaign & Info</th>
+                            <th class="px-4 py-3.5">Status Level Campaign</th>
+                            <th class="px-4 py-3.5">Objective Meta</th>
+                            <th class="px-4 py-3.5">AdSets Terhubung</th>
+                            <th class="px-4 py-3.5">Total Spend</th>
+                            <th class="px-4 py-3.5">Total Revenue & ROAS</th>
+                            <th class="px-6 py-3.5 text-right">Aksi Kontrol Campaign</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-800/60">
+                        @forelse($campaignList ?? [] as $camp)
+                        <tr class="hover:bg-slate-800/30 transition">
+                            <td class="px-6 py-3.5">
+                                <div class="font-semibold text-white text-sm">{{ $camp['name'] }}</div>
+                                <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-2 font-mono">
+                                    <span>ID: {{ $camp['meta_id'] }}</span>
+                                    @if($camp['daily_budget'])
+                                        <span>•</span>
+                                        <span class="text-slate-300 font-medium">Budget: Rp {{ number_format($camp['daily_budget'], 0, ',', '.') }}/hari</span>
+                                    @endif
+                                </div>
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                @if($camp['status'] === 'ACTIVE')
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-emerald-500/15 text-emerald-400 border border-emerald-500/30">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span>
+                                        🟢 AKTIF (TAYANG)
+                                    </span>
+                                @else
+                                    <span class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold bg-amber-500/15 text-amber-400 border border-amber-500/30">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+                                        ⏸ NONAKTIF (PAUSED)
+                                    </span>
+                                @endif
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                <span class="px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono text-[10px]">
+                                    {{ $camp['objective'] }}
+                                </span>
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                <span class="font-bold text-white">{{ $camp['adsets_count'] }}</span>
+                                <span class="text-slate-400 text-[11px]">AdSets</span>
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                <div class="font-semibold text-white">Rp {{ number_format($camp['spend'], 0, ',', '.') }}</div>
+                                <div class="text-emerald-400 font-bold mt-0.5 text-xs">{{ $camp['conversions'] }} Pembelian</div>
+                            </td>
+                            <td class="px-4 py-3.5 whitespace-nowrap">
+                                <div class="font-bold text-sm {{ $camp['roas'] >= 2.5 ? 'text-emerald-400' : 'text-amber-400' }}">
+                                    {{ $camp['roas'] }}x ROAS
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-0.5">
+                                    Omset: Rp {{ number_format($camp['revenue'], 0, ',', '.') }}
+                                </div>
+                            </td>
+                            <td class="px-6 py-3.5 text-right whitespace-nowrap">
+                                <div class="flex items-center justify-end space-x-2">
+                                    <button type="button" onclick="filterByCampaign('{{ addslashes($camp['name']) }}')" class="px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1 cursor-pointer">
+                                        <i class="fa-solid fa-eye text-[10px]"></i>
+                                        <span>Lihat AdSets</span>
+                                    </button>
+                                    @if($camp['status'] === 'ACTIVE')
+                                        <form action="{{ route('campaign.status', $camp['meta_id']) }}" method="POST" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="status" value="PAUSED">
+                                            <button type="submit" class="px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1 cursor-pointer" title="Pause Seluruh Campaign">
+                                                <i class="fa-solid fa-pause text-[10px]"></i>
+                                                <span>Pause</span>
+                                            </button>
+                                        </form>
+                                    @else
+                                        <form action="{{ route('campaign.status', $camp['meta_id']) }}" method="POST" class="inline">
+                                            @csrf
+                                            <input type="hidden" name="status" value="ACTIVE">
+                                            <button type="submit" class="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1 cursor-pointer" title="Aktifkan Campaign">
+                                                <i class="fa-solid fa-play text-[10px]"></i>
+                                                <span>Aktifkan</span>
+                                            </button>
+                                        </form>
+                                    @endif
+                                </div>
+                            </td>
+                        </tr>
+                        @empty
+                        <tr>
+                            <td colspan="7" class="text-center py-10 text-slate-500">Belum ada campaign yang disinkronkan.</td>
+                        </tr>
+                        @endforelse
                     </tbody>
                 </table>
             </div>
@@ -1141,6 +1287,34 @@
             return 'Rp ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
         }
 
+        function switchLevelView(view) {
+            const adsetsView = document.getElementById('levelAdsetsView');
+            const campaignsView = document.getElementById('levelCampaignsView');
+            const tabBtnAdsets = document.getElementById('tabBtnAdsets');
+            const tabBtnCampaigns = document.getElementById('tabBtnCampaigns');
+
+            if (view === 'adsets') {
+                adsetsView?.classList.remove('hidden');
+                campaignsView?.classList.add('hidden');
+                tabBtnAdsets.className = "px-4 py-3 text-xs font-bold border-b-2 border-indigo-500 text-indigo-400 flex items-center gap-2 transition cursor-pointer";
+                tabBtnCampaigns.className = "px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition cursor-pointer";
+            } else {
+                adsetsView?.classList.add('hidden');
+                campaignsView?.classList.remove('hidden');
+                tabBtnCampaigns.className = "px-4 py-3 text-xs font-bold border-b-2 border-indigo-500 text-indigo-400 flex items-center gap-2 transition cursor-pointer";
+                tabBtnAdsets.className = "px-4 py-3 text-xs font-semibold border-b-2 border-transparent text-slate-400 hover:text-white flex items-center gap-2 transition cursor-pointer";
+            }
+        }
+
+        function filterByCampaign(campaignName) {
+            switchLevelView('adsets');
+            const searchInput = document.getElementById('adsetSearchInput');
+            if (searchInput) {
+                searchInput.value = campaignName;
+                filterAdsetTable();
+            }
+        }
+
         function filterAdsetTable() {
             const input = document.getElementById('adsetSearchInput');
             const query = (input ? input.value : '').toLowerCase().trim();
@@ -1164,24 +1338,48 @@
         }
 
         function openAnalysisModal(btn) {
-            const raw = btn.getAttribute('data-adset');
+            if (!btn) return;
+            let raw = btn.getAttribute('data-adset');
             if (!raw) return;
-            const data = JSON.parse(raw);
+
+            let data;
+            try {
+                // Defensive entity decoding: if raw was HTML escaped (&quot;)
+                if (raw.includes('&quot;') || raw.includes('&amp;')) {
+                    const txt = document.createElement('textarea');
+                    txt.innerHTML = raw;
+                    raw = txt.value;
+                    if (raw.includes('&quot;')) {
+                        txt.innerHTML = raw;
+                        raw = txt.value;
+                    }
+                }
+                data = JSON.parse(raw);
+            } catch (err) {
+                console.error("Gagal parsing data adset JSON:", err, raw);
+                alert("Terjadi kesalahan memuat data analisa. Silakan coba lagi.");
+                return;
+            }
+
             const m = data.metrics || {};
 
-            // Header
+            // Header AdSet & Campaign
             document.getElementById('modalAdsetName').textContent = data.name;
-            document.getElementById('modalCampaignName').textContent = '📁 ' + (data.campaign_name || 'Campaign');
+            const cStatusText = data.campaign_status === 'ACTIVE' ? '🟢 Campaign Aktif' : '⏸ Campaign Nonaktif';
+            document.getElementById('modalCampaignName').textContent = '📁 ' + (data.campaign_name || 'Campaign') + ' (' + cStatusText + ')';
             document.getElementById('modalMetaId').textContent = 'ID: ' + data.meta_id;
             document.getElementById('modalBudget').textContent = 'Budget: ' + formatRupiah(data.daily_budget) + '/hari';
 
             const statusBadge = document.getElementById('modalAdsetStatusBadge');
             if (data.status === 'ACTIVE') {
-                statusBadge.textContent = '🟢 ACTIVE';
-                statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+                statusBadge.textContent = '🟢 TAYANG (ACTIVE)';
+                statusBadge.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-300 border border-emerald-500/30';
+            } else if (data.status === 'CAMPAIGN_PAUSED') {
+                statusBadge.textContent = '⏸ NONAKTIF (Campaign Paused)';
+                statusBadge.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-amber-500/20 text-amber-300 border border-amber-500/30';
             } else {
-                statusBadge.textContent = '⏸ ' + (data.status || 'PAUSED');
-                statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700';
+                statusBadge.textContent = '⏸ NONAKTIF (' + (data.status || 'PAUSED') + ')';
+                statusBadge.className = 'px-2.5 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700';
             }
 
             // Health Score & Verdict
@@ -1223,6 +1421,12 @@
                     desc: 'Adset berjalan normal dan konsisten memenuhi kriteria target performa.', 
                     border: 'border-blue-500/50 bg-blue-950/20', 
                     badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/40' 
+                },
+                'CAMPAIGN_PAUSED': { 
+                    label: '⏸ Campaign Nonaktif', 
+                    desc: 'Penayangan adset ini terhenti otomatis karena Campaign induknya sedang PAUSED / Nonaktif di Meta Ads.', 
+                    border: 'border-amber-500/50 bg-amber-950/20', 
+                    badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' 
                 },
                 'LEARNING_PHASE': { 
                     label: '⏳ Tahap Pembelajaran', 
@@ -1277,7 +1481,9 @@
 
             // Funnel Insight
             const insightText = document.getElementById('modalFunnelInsightText');
-            if ((m.ctr || 0) >= 1.5 && (m.cvr || 0) < 1.0 && (m.clicks || 0) >= 20) {
+            if (data.status === 'CAMPAIGN_PAUSED') {
+                insightText.innerHTML = '<strong class="text-amber-300">⏸ Status Campaign Induk Nonaktif:</strong> Penayangan iklan terhenti di tingkat Campaign Meta. Silakan aktifkan Campaign induk pada tab "Level Campaign" agar adset ini dapat mulai menayangkan iklan kembali.';
+            } else if ((m.ctr || 0) >= 1.5 && (m.cvr || 0) < 1.0 && (m.clicks || 0) >= 20) {
                 insightText.innerHTML = '<strong class="text-amber-300">⚠️ Indikasi Landing Page Bottleneck:</strong> Hook visual & materi iklan sangat menarik (CTR tinggi ' + m.ctr + '%), namun konversi landing page rendah (' + m.cvr + '%). Periksa kecepatan loading halaman, relevansi copy headline, atau kemudahan proses checkout.';
             } else if ((m.ctr || 0) < 1.0 && (m.impressions || 0) >= 500) {
                 insightText.innerHTML = '<strong class="text-red-300">⚠️ Hook Kurang Kuat:</strong> Rasio klik audiens rendah (' + m.ctr + '%). Penonton mengabaikan iklan. Disarankan membuat variasi thumbnail baru atau video 3 detik pertama yang lebih memikat (Creative Studio).';
@@ -1314,6 +1520,7 @@
                 const li = document.createElement('li');
                 li.className = 'flex items-start gap-2 text-slate-300';
                 let actionDesc = action;
+                if (action === 'ACTIVATE_CAMPAIGN_FIRST') actionDesc = '▶ Aktifkan Campaign induk terlebih dahulu melalui tab Level Campaign agar adset ini bisa tayang.';
                 if (action === 'SCALE_BUDGET_20') actionDesc = '🚀 Naikkan budget harian sebesar +20% secara bertahap.';
                 if (action === 'KILL_PAUSE') actionDesc = '🛑 Matikan / Pause adset ini segera untuk menghentikan pemborosan biaya (boncos).';
                 if (action === 'REFRESH_CREATIVES') actionDesc = '🎨 Tambahkan materi iklan baru (Creative Studio) karena audiens jenuh.';
@@ -1356,7 +1563,23 @@
                 `;
                 actionsDiv.appendChild(pauseForm);
             } else {
-                // Activate button form
+                // If campaign is paused, offer campaign activate button
+                if (data.status === 'CAMPAIGN_PAUSED' && data.meta_campaign_id) {
+                    const campActForm = document.createElement('form');
+                    campActForm.action = `/campaign/${data.meta_campaign_id}/status`;
+                    campActForm.method = 'POST';
+                    campActForm.className = 'inline';
+                    campActForm.innerHTML = `
+                        <input type="hidden" name="_token" value="${csrfToken}">
+                        <input type="hidden" name="status" value="ACTIVE">
+                        <button type="submit" class="px-4 py-2 bg-indigo-600 hover:bg-indigo-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                            <i class="fa-solid fa-bullhorn"></i> Aktifkan Campaign Induk
+                        </button>
+                    `;
+                    actionsDiv.appendChild(campActForm);
+                }
+
+                // Activate adset button form
                 const activateForm = document.createElement('form');
                 activateForm.action = `/adset/${data.meta_id}/status`;
                 activateForm.method = 'POST';

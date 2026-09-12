@@ -29,14 +29,43 @@ class DashboardController extends Controller
     {
         $account = AdAccount::first();
         $filterStatus = request('filter_status', 'all'); // 'all', 'active', 'paused'
+        $activeTab = request('tab', 'adsets'); // 'adsets' or 'campaigns'
 
+        // Agregasi performa & status Level Campaign
         $campaigns = Campaign::with('adSets.ads')->get();
-        
+        $campaignList = $campaigns->map(function ($camp) {
+            $adsetIds = $camp->adSets->pluck('meta_adset_id');
+            $spend = (float) AdInsightDaily::whereIn('meta_entity_id', $adsetIds)->sum('spend');
+            $revenue = (float) AdInsightDaily::whereIn('meta_entity_id', $adsetIds)->sum('conversion_value');
+            $conversions = (int) AdInsightDaily::whereIn('meta_entity_id', $adsetIds)->sum('conversions');
+            $roas = $spend > 0 ? round($revenue / $spend, 2) : 0.0;
+
+            return [
+                'model' => $camp,
+                'meta_id' => $camp->meta_campaign_id,
+                'name' => $camp->name,
+                'status' => $camp->status,
+                'objective' => $camp->objective,
+                'daily_budget' => $camp->daily_budget,
+                'adsets_count' => $camp->adSets->count(),
+                'spend' => $spend,
+                'revenue' => $revenue,
+                'conversions' => $conversions,
+                'roas' => $roas,
+            ];
+        });
+
         $adsetsQuery = AdSet::with(['campaign', 'adAccount', 'ads']);
         if ($filterStatus === 'active') {
-            $adsetsQuery->where('status', 'ACTIVE');
+            // Hanya adset yang berstatus ACTIVE dan Campaign induknya juga ACTIVE
+            $adsetsQuery->where('status', 'ACTIVE')
+                ->whereHas('campaign', fn($q) => $q->where('status', 'ACTIVE'));
         } elseif ($filterStatus === 'paused') {
-            $adsetsQuery->where('status', '!=', 'ACTIVE');
+            // Adset yang berstatus non-ACTIVE atau Campaign induknya non-ACTIVE
+            $adsetsQuery->where(function ($q) {
+                $q->where('status', '!=', 'ACTIVE')
+                  ->orWhereHas('campaign', fn($cq) => $cq->where('status', '!=', 'ACTIVE'));
+            });
         }
         $adsets = $adsetsQuery->get();
 
@@ -59,6 +88,7 @@ class DashboardController extends Controller
         return view('dashboard', [
             'account' => $account,
             'campaigns' => $campaigns,
+            'campaignList' => $campaignList,
             'evaluatedAdsets' => $evaluatedAdsets,
             'kpis' => [
                 'total_spend' => $totalSpend,
@@ -69,7 +99,33 @@ class DashboardController extends Controller
             ],
             'auditLogs' => $auditLogs,
             'filterStatus' => $filterStatus,
+            'activeTab' => $activeTab,
         ]);
+    }
+
+    public function updateCampaignStatus(Request $request, string $metaCampaignId): RedirectResponse
+    {
+        $status = $request->input('status', 'PAUSED');
+        $this->actionService->setCampaignStatus($metaCampaignId, $status);
+
+        // Jika campaign di-pause, update juga semua adset di bawahnya ke PAUSED agar konsisten
+        if ($status !== 'ACTIVE') {
+            $camp = Campaign::where('meta_campaign_id', $metaCampaignId)->first();
+            if ($camp) {
+                AdSet::where('campaign_id', $camp->id)->update(['status' => 'PAUSED']);
+            }
+        }
+
+        AgentAuditLog::create([
+            'agent_id' => 'user_manual',
+            'action' => "UPDATE_CAMPAIGN_STATUS_{$status}",
+            'target_type' => 'CAMPAIGN',
+            'target_id' => $metaCampaignId,
+            'reason' => "Tindakan manual ubah status campaign ke {$status} dari web dashboard",
+            'payload' => ['new_status' => $status],
+        ]);
+
+        return redirect()->back()->with('success', "Status Campaign {$metaCampaignId} berhasil diubah ke {$status}.");
     }
 
     public function updateStatus(Request $request, string $metaAdsetId): RedirectResponse
