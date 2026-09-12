@@ -4,12 +4,11 @@ namespace App\Services\Analytics;
 
 use App\Models\AdSet;
 use App\Models\AdInsightDaily;
-use App\Models\Campaign;
 
 class CampaignHealthEvaluator
 {
     /**
-     * Evaluasi efektivitas AdSet secara komprehensif.
+     * Evaluasi efektivitas AdSet secara komprehensif termasuk analisis mendalam CTR.
      */
     public function evaluateAdset(AdSet $adset, int $days = 3): array
     {
@@ -38,6 +37,7 @@ class CampaignHealthEvaluator
 
         $cpa = $totalConversions > 0 ? ($totalSpend / $totalConversions) : $totalSpend;
         $roas = $totalSpend > 0 ? ($totalRevenue / $totalSpend) : 0.0;
+        $cvr = $totalClicks > 0 ? (($totalConversions / $totalClicks) * 100) : 0.0; // Click-to-Conversion Rate
 
         // Ambil data historis 14 hari untuk deteksi Creative Decay Index
         $historicalInsights = AdInsightDaily::where('meta_entity_type', 'ADSET')
@@ -51,6 +51,20 @@ class CampaignHealthEvaluator
         $historicalCtr = $historicalImpressions > 0 ? (($historicalClicks / $historicalImpressions) * 100) : $avgCtr;
 
         $ctrDecayRatio = $historicalCtr > 0 ? ($avgCtr / $historicalCtr) : 1.0;
+
+        // Analisis CTR & Hook Quality
+        $ctrGrade = 'STANDAR';
+        $ctrInsight = '';
+        if ($avgCtr >= 2.2) {
+            $ctrGrade = 'SANGAT TINGGI (WINNING HOOK)';
+            $ctrInsight = 'Visual dan copy iklan sangat memikat audiens, rasio klik jauh di atas rata-rata industri.';
+        } elseif ($avgCtr >= 1.2) {
+            $ctrGrade = 'BAIK / STABIL';
+            $ctrInsight = 'Daya tarik materi iklan cukup memadai dan stabil.';
+        } else {
+            $ctrGrade = 'LEMAH (WEAK HOOK)';
+            $ctrInsight = 'Hanya sedikit audiens yang mengklik iklan. Thumbnail, judul, atau 3 detik pertama video kurang menarik.';
+        }
 
         // Logika Klasifikasi Smart System
         $verdict = 'HEALTHY_STABLE';
@@ -75,6 +89,11 @@ class CampaignHealthEvaluator
             $healthScore = 15;
             $riskLevel = 'CRITICAL';
             $reasons[] = "AdSet boncos! Sudah menghabiskan Rp " . number_format($totalSpend, 0, ',', '.') . " tanpa ada konversi sama sekali (Target CPA: Rp " . number_format($targetCpa, 0, ',', '.') . ").";
+
+            if ($avgCtr >= 1.8) {
+                $reasons[] = "⚠️ Deteksi Bottleneck Landing Page: CTR iklan tinggi ({$avgCtr}%), artinya iklan memikat tetapi website gagal mengonversi pengunjung menjadi pembeli. Cek kecepatan web & penawaran harga.";
+            }
+
             $recommendedActions[] = 'PAUSE_ADSET_IMMEDIATELY';
         }
         elseif ($totalConversions > 0 && $cpa >= (1.8 * $targetCpa)) {
@@ -90,6 +109,7 @@ class CampaignHealthEvaluator
             $healthScore = 95;
             $riskLevel = 'LOW';
             $reasons[] = "Performa sangat prima! ROAS {$roas}x melampaui target ({$targetRoas}x) dan CPA hanya Rp " . number_format($cpa, 0, ',', '.') . " dengan audiens masih fresh (Frekuensi: " . round($avgFrequency, 2) . ").";
+            $reasons[] = "Kualitas CTR: {$ctrGrade} ({$avgCtr}%). Rasio konversi klik ke pembelian (CVR) mencapai " . round($cvr, 2) . "%.";
             $recommendedActions[] = 'INCREASE_BUDGET_20_PERCENT';
             $recommendedActions[] = 'DUPLICATE_TO_NEW_LOOKALIKE';
         }
@@ -98,7 +118,8 @@ class CampaignHealthEvaluator
             $verdict = 'CREATIVE_FATIGUE';
             $healthScore = 40;
             $riskLevel = 'MEDIUM';
-            $reasons[] = "Materi iklan mengalami kejenuhan (Creative Fatigue). Frekuensi sudah mencapai " . round($avgFrequency, 2) . " dan CTR turun " . round((1 - $ctrDecayRatio) * 100, 1) . "% dibanding historis.";
+            $reasons[] = "Materi iklan mengalami kejenuhan (Creative Fatigue). Frekuensi sudah mencapai " . round($avgFrequency, 2) . " dan CTR turun " . round((1 - $ctrDecayRatio) * 100, 1) . "% dibanding performa historis.";
+            $reasons[] = "Saran: Audiens sudah bosan melihat gambar/video yang sama. Segera upload creative baru melalui Creative Studio.";
             $recommendedActions[] = 'REFRESH_AD_CREATIVE';
             $recommendedActions[] = 'EXPAND_AUDIENCE_SIZE';
         }
@@ -108,6 +129,7 @@ class CampaignHealthEvaluator
             $healthScore = 78;
             $riskLevel = 'LOW';
             $reasons[] = "AdSet berjalan sesuai jalur metrik yang diharapkan. ROAS: {$roas}x (Target: {$targetRoas}x).";
+            $reasons[] = "CTR: {$avgCtr}% ({$ctrGrade}).";
             $recommendedActions[] = 'MAINTAIN';
         }
 
@@ -131,8 +153,11 @@ class CampaignHealthEvaluator
                 'target_cpa' => $targetCpa,
                 'ctr' => round($avgCtr, 3),
                 'cpc' => round($avgCpc, 2),
+                'cvr' => round($cvr, 2),
                 'frequency' => round($avgFrequency, 2),
                 'ctr_decay_ratio' => round($ctrDecayRatio, 2),
+                'ctr_grade' => $ctrGrade,
+                'ctr_insight' => $ctrInsight,
                 'impressions' => $totalImpressions,
                 'clicks' => $totalClicks,
             ],

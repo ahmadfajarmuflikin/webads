@@ -84,6 +84,12 @@
                     <span>Buat Campaign</span>
                 </button>
 
+                <!-- Tombol Creative Studio (Upload Gambar, Video, Carousel) -->
+                <button type="button" onclick="document.getElementById('creativeStudioModal').classList.remove('hidden')" class="inline-flex items-center space-x-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-purple-950/40" title="Upload Gambar, Video, atau Carousel langsung ke Meta Ads">
+                    <i class="fa-solid fa-wand-magic-sparkles"></i>
+                    <span>Upload Creative</span>
+                </button>
+
                 <form action="{{ route('automation.watchdog') }}" method="POST">
                     @csrf
                     <button type="submit" class="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-orange-950/40">
@@ -219,6 +225,167 @@
             </form>
         </div>
     </div>
+
+    <!-- Modal Creative Studio (Upload Gambar, Video, Carousel) -->
+    <div id="creativeStudioModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 overflow-y-auto">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-2xl w-full p-6 shadow-2xl space-y-4 my-8 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <div>
+                    <h3 class="font-bold text-white text-base flex items-center gap-2">
+                        <i class="fa-solid fa-wand-magic-sparkles text-purple-400"></i>
+                        Creative Studio & Meta Ad Uploader
+                    </h3>
+                    <p class="text-xs text-slate-400 mt-0.5">Upload Single Image, Video, atau Carousel langsung ke Meta Graph API</p>
+                </div>
+                <button type="button" onclick="document.getElementById('creativeStudioModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <form action="{{ route('creative.upload') }}" method="POST" enctype="multipart/form-data" class="space-y-4 text-xs">
+                @csrf
+
+                <!-- Target AdSet -->
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Target AdSet</label>
+                    <select name="adset_id" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 font-medium cursor-pointer">
+                        @foreach($evaluatedAdsets as $item)
+                            <option value="{{ $item['model']->id }}">
+                                [{{ $item['verdict'] }}] {{ $item['name'] }}
+                            </option>
+                        @endforeach
+                    </select>
+                </div>
+
+                <!-- Nama Iklan -->
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Nama Iklan (Ad Name)</label>
+                    <input type="text" name="ad_name" placeholder="contoh: Promo Serum - Single Image UGC" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                </div>
+
+                <!-- Pilihan Format Creative -->
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Pilih Format Creative</label>
+                    <div class="grid grid-cols-3 gap-3">
+                        <label class="flex items-center gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-purple-500 transition">
+                            <input type="radio" name="format" value="IMAGE" checked onchange="switchFormat('IMAGE')" class="text-purple-600 focus:ring-0">
+                            <div>
+                                <div class="font-bold text-slate-200">Single Image</div>
+                                <div class="text-[10px] text-slate-500">JPG/PNG 1:1 atau 4:5</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-purple-500 transition">
+                            <input type="radio" name="format" value="VIDEO" onchange="switchFormat('VIDEO')" class="text-purple-600 focus:ring-0">
+                            <div>
+                                <div class="font-bold text-slate-200">Single Video</div>
+                                <div class="text-[10px] text-slate-500">MP4 Reels/Feed 9:16</div>
+                            </div>
+                        </label>
+                        <label class="flex items-center gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl cursor-pointer hover:border-purple-500 transition">
+                            <input type="radio" name="format" value="CAROUSEL" onchange="switchFormat('CAROUSEL')" class="text-purple-600 focus:ring-0">
+                            <div>
+                                <div class="font-bold text-slate-200">Carousel</div>
+                                <div class="text-[10px] text-slate-500">Multi-Kartu Produk</div>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+
+                <!-- Bagian File Upload Berdasarkan Format -->
+                <!-- 1. Single Image Section -->
+                <div id="formatImageSection" class="p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                    <label class="block text-slate-300 font-semibold">Upload File Gambar</label>
+                    <input type="file" name="image_file" accept="image/*" class="w-full text-slate-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600/20 file:text-purple-300 hover:file:bg-purple-600/30 cursor-pointer">
+                    <div class="text-[10px] text-slate-500">Rekomendasi rasio: 1:1 (1080x1080px) atau 4:5 (1080x1350px). Maks 10MB.</div>
+                </div>
+
+                <!-- 2. Single Video Section -->
+                <div id="formatVideoSection" class="hidden p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-2">
+                    <label class="block text-slate-300 font-semibold">Upload File Video</label>
+                    <input type="file" name="video_file" accept="video/mp4,video/quicktime" class="w-full text-slate-400 file:mr-4 file:py-1.5 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-purple-600/20 file:text-purple-300 hover:file:bg-purple-600/30 cursor-pointer">
+                    <div class="text-[10px] text-slate-500">Format MP4/MOV. Rekomendasi rasio: 9:16 (Reels/Stories) atau 1:1. Maks 50MB.</div>
+                </div>
+
+                <!-- 3. Carousel Section -->
+                <div id="formatCarouselSection" class="hidden p-3 bg-slate-950/60 border border-slate-800 rounded-xl space-y-3">
+                    <label class="block text-slate-300 font-semibold">Kartu Carousel (Multi-Produk)</label>
+                    <div class="space-y-3">
+                        @for($i = 0; $i < 3; $i++)
+                        <div class="p-2.5 bg-slate-900 border border-slate-800 rounded-lg space-y-2">
+                            <div class="font-bold text-slate-300">Kartu #{{ $i + 1 }}</div>
+                            <div class="grid grid-cols-2 gap-2">
+                                <input type="file" name="carousel_images[]" accept="image/*" class="text-[11px] text-slate-400">
+                                <input type="text" name="carousel_headlines[]" placeholder="Judul Kartu {{ $i + 1 }}" class="bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white">
+                            </div>
+                            <input type="url" name="carousel_links[]" placeholder="https://domainanda.com/produk-{{ $i + 1 }}" class="w-full bg-slate-950 border border-slate-800 rounded px-2 py-1 text-white text-[11px]">
+                        </div>
+                        @endfor
+                    </div>
+                </div>
+
+                <!-- Teks Iklan (Copywriting) -->
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Teks Utama (Primary Text / Caption)</label>
+                    <textarea name="primary_text" rows="3" placeholder="Tuliskan copywriting iklan Anda di sini (Hook, Value Proposition, Promo)..." class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Headline (Judul Tebal Iklan)</label>
+                        <input type="text" name="headline" placeholder="contoh: Diskon Spesial 50% Hari Ini" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Deskripsi Opsional (Subheadline)</label>
+                        <input type="text" name="description" placeholder="contoh: Gratis Ongkir Se-Indonesia" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-purple-500">
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Call to Action (Tombol CTA)</label>
+                        <select name="cta_type" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 font-medium cursor-pointer">
+                            <option value="SHOP_NOW">Beli Sekarang (SHOP_NOW)</option>
+                            <option value="ORDER_NOW">Pesan Sekarang (ORDER_NOW)</option>
+                            <option value="LEARN_MORE" selected>Pelajari Selengkapnya (LEARN_MORE)</option>
+                            <option value="SIGN_UP">Daftar (SIGN_UP)</option>
+                            <option value="CONTACT_US">Hubungi Kami (CONTACT_US)</option>
+                            <option value="SEND_WHATSAPP_MESSAGE">Kirim Pesan WhatsApp</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Landing Page / Website URL</label>
+                        <input type="url" name="website_url" value="https://" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-purple-500 font-mono">
+                    </div>
+                </div>
+
+                <div class="pt-3 flex items-center justify-end space-x-2 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('creativeStudioModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-purple-600 hover:bg-purple-500 text-white rounded-lg font-semibold shadow-lg shadow-purple-950/40 flex items-center gap-2">
+                        <i class="fa-solid fa-cloud-arrow-up"></i>
+                        <span>Upload & Buat Iklan</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script>
+        function switchFormat(format) {
+            document.getElementById('formatImageSection').classList.add('hidden');
+            document.getElementById('formatVideoSection').classList.add('hidden');
+            document.getElementById('formatCarouselSection').classList.add('hidden');
+
+            if (format === 'IMAGE') {
+                document.getElementById('formatImageSection').classList.remove('hidden');
+            } else if (format === 'VIDEO') {
+                document.getElementById('formatVideoSection').classList.remove('hidden');
+            } else if (format === 'CAROUSEL') {
+                document.getElementById('formatCarouselSection').classList.remove('hidden');
+            }
+        }
+    </script>
 
     <!-- Modal Input Token Manual (Tanpa OAuth / Tanpa HTTPS) -->
     <div id="manualTokenModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -464,12 +631,26 @@
                             </td>
 
                             <td class="px-4 py-4">
-                                <div class="text-slate-200">
-                                    Freq: <span class="font-bold {{ $m['frequency'] > 2.8 ? 'text-amber-400' : 'text-white' }}">{{ $m['frequency'] }}</span>
+                                <div class="flex items-center gap-1.5">
+                                    <span class="font-bold text-sm {{ $m['ctr'] >= 2.0 ? 'text-emerald-400' : ($m['ctr'] < 1.0 ? 'text-red-400' : 'text-slate-200') }}">
+                                        {{ $m['ctr'] }}%
+                                    </span>
+                                    @if(!empty($m['ctr_grade']))
+                                        <span class="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase {{ $m['ctr'] >= 2.0 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : ($m['ctr'] < 1.0 ? 'bg-red-950/80 text-red-300 border border-red-500/30' : 'bg-slate-800 text-slate-300') }}">
+                                            {{ $m['ctr_grade'] }}
+                                        </span>
+                                    @endif
                                 </div>
-                                <div class="text-[11px] text-slate-400 mt-0.5">
-                                    CTR: <span class="font-semibold {{ $m['ctr'] < 1.0 ? 'text-red-400' : 'text-slate-200' }}">{{ $m['ctr'] }}%</span>
+                                <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 font-mono">
+                                    <span>Freq: <strong class="{{ $m['frequency'] > 2.8 ? 'text-amber-400' : 'text-white' }}">{{ $m['frequency'] }}</strong></span>
+                                    <span>•</span>
+                                    <span>CVR: <strong class="text-indigo-300">{{ $m['cvr'] ?? 0 }}%</strong></span>
                                 </div>
+                                @if(isset($m['ctr_decay_ratio']) && $m['ctr_decay_ratio'] < 0.75)
+                                    <div class="mt-1 text-[10px] text-amber-400 font-semibold flex items-center gap-1">
+                                        <i class="fa-solid fa-triangle-exclamation"></i> CTR turun {{ round((1 - $m['ctr_decay_ratio']) * 100) }}% (Fatigue)
+                                    </div>
+                                @endif
                             </td>
 
                             <td class="px-4 py-4 max-w-xs">

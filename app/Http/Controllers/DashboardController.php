@@ -10,6 +10,7 @@ use App\Models\AgentAuditLog;
 use App\Models\Campaign;
 use App\Services\Analytics\CampaignHealthEvaluator;
 use App\Services\Meta\CampaignActionService;
+use App\Services\Meta\CreativeUploadService;
 use App\Services\Meta\MetaAdsClientService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -207,6 +208,69 @@ class DashboardController extends Controller
             'target_type' => 'CAMPAIGN',
             'target_id' => $result['campaign']->meta_campaign_id,
             'reason' => "Membuat campaign baru '{$validated['name']}' dengan objektif {$validated['objective']} dari web dashboard",
+            'payload' => $result,
+        ]);
+
+        return redirect()->route('dashboard')->with('success', $result['message']);
+    }
+
+    public function uploadCreative(Request $request, CreativeUploadService $creativeService): RedirectResponse
+    {
+        $validated = $request->validate([
+            'adset_id' => 'required|exists:ad_sets,id',
+            'ad_name' => 'required|string|max:255',
+            'format' => 'required|in:IMAGE,VIDEO,CAROUSEL',
+            'primary_text' => 'nullable|string',
+            'headline' => 'nullable|string|max:255',
+            'description' => 'nullable|string|max:255',
+            'website_url' => 'required|url',
+            'cta_type' => 'required|string',
+            'image_file' => 'nullable|image|max:10240',
+            'video_file' => 'nullable|mimes:mp4,mov|max:51200',
+            'carousel_images.*' => 'nullable|image|max:10240',
+            'carousel_headlines.*' => 'nullable|string',
+            'carousel_links.*' => 'nullable|url',
+        ]);
+
+        $adset = AdSet::with('adAccount')->findOrFail($validated['adset_id']);
+        $payload = [
+            'primary_text' => $validated['primary_text'] ?? '',
+            'headline' => $validated['headline'] ?? '',
+            'description' => $validated['description'] ?? '',
+            'website_url' => $validated['website_url'],
+            'cta_type' => $validated['cta_type'],
+        ];
+
+        if ($validated['format'] === 'IMAGE' && $request->hasFile('image_file')) {
+            $hash = $creativeService->uploadImage($adset->adAccount, $request->file('image_file'));
+            $payload['image_hash'] = $hash;
+        } elseif ($validated['format'] === 'VIDEO' && $request->hasFile('video_file')) {
+            $videoId = $creativeService->uploadVideo($adset->adAccount, $request->file('video_file'));
+            $payload['video_id'] = $videoId;
+        } elseif ($validated['format'] === 'CAROUSEL') {
+            $cards = [];
+            if ($request->hasFile('carousel_images')) {
+                foreach ($request->file('carousel_images') as $idx => $img) {
+                    $hash = $creativeService->uploadImage($adset->adAccount, $img);
+                    $cards[] = [
+                        'image_hash' => $hash,
+                        'headline' => $request->input("carousel_headlines.{$idx}", "Produk " . ($idx + 1)),
+                        'description' => $request->input("carousel_descriptions.{$idx}", ""),
+                        'link' => $request->input("carousel_links.{$idx}", $validated['website_url']),
+                    ];
+                }
+            }
+            $payload['carousel_cards'] = $cards;
+        }
+
+        $result = $creativeService->createAdWithCreative($adset, $validated['ad_name'], $validated['format'], $payload);
+
+        AgentAuditLog::create([
+            'agent_id' => 'user_creative_studio',
+            'action' => 'CREATE_AD_CREATIVE',
+            'target_type' => 'ADSET',
+            'target_id' => $adset->meta_adset_id,
+            'reason' => "Upload materi iklan baru '{$validated['ad_name']}' format {$validated['format']} via Creative Studio",
             'payload' => $result,
         ]);
 
