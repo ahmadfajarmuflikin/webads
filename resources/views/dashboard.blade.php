@@ -50,6 +50,13 @@
                     <span class="font-bold text-blue-400">Rp {{ number_format($account?->target_cpa ?? 0, 0, ',', '.') }}</span>
                 </div>
 
+                <!-- Tombol Input Token Manual (Bypass OAuth / Tanpa HTTPS) -->
+                <button type="button" onclick="document.getElementById('manualTokenModal').classList.remove('hidden')" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 shadow-md transition" title="Hubungkan menggunakan System User Token (Tanpa butuh HTTPS / OAuth)">
+                    <i class="fa-solid fa-key text-amber-400"></i>
+                    <span>Input Token Manual</span>
+                </button>
+
+                <!-- Tombol Connect with Meta OAuth -->
                 <a href="{{ route('auth.meta.redirect') }}" class="inline-flex items-center space-x-2 bg-[#1877F2] hover:bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md transition shadow-blue-900/40" title="Login & Hubungkan Akun Iklan via Meta OAuth">
                     <i class="fa-brands fa-facebook text-sm"></i>
                     <span>Connect with Meta</span>
@@ -65,6 +72,59 @@
             </div>
         </div>
     </header>
+
+    <!-- Modal Input Token Manual (Tanpa OAuth / Tanpa HTTPS) -->
+    <div id="manualTokenModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-lg w-full p-6 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <i class="fa-solid fa-key text-amber-400"></i>
+                    Hubungkan Akun via Token (Tanpa HTTPS / OAuth)
+                </h3>
+                <button type="button" onclick="document.getElementById('manualTokenModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-relaxed">
+                Metode ini menggunakan <strong>System User Token</strong> atau <strong>Graph API Token</strong>. 
+                <span class="text-emerald-400">100% Berfungsi tanpa perlu domain HTTPS atau redirect URI!</span>
+            </p>
+
+            <form action="{{ route('account.connect_manual') }}" method="POST" class="space-y-3 text-xs">
+                @csrf
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Ad Account ID</label>
+                    <input type="text" name="meta_account_id" placeholder="contoh: act_123456789 atau 123456789" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono">
+                </div>
+
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Meta Access Token</label>
+                    <textarea name="access_token" rows="3" placeholder="Tempelkan System User Token atau Graph API Token di sini..." required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-blue-500 font-mono"></textarea>
+                </div>
+
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Target ROAS (x)</label>
+                        <input type="number" step="0.1" name="target_roas" value="2.5" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 font-mono">
+                    </div>
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Target CPA (IDR)</label>
+                        <input type="number" step="1000" name="target_cpa" value="100000" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-blue-500 font-mono">
+                    </div>
+                </div>
+
+                <div class="pt-3 flex items-center justify-end space-x-2 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('manualTokenModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg font-semibold shadow-lg shadow-blue-900/30">
+                        Simpan & Hubungkan
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 

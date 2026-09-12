@@ -98,4 +98,73 @@ class DashboardController extends Controller
         RunAutomationRulesJob::dispatchSync($this->evaluator, $this->actionService);
         return redirect()->back()->with('success', 'Watchdog Otomasi Kill-Switch & Scale berhasil dieksekusi.');
     }
+
+    public function connectManual(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'meta_account_id' => 'required|string',
+            'access_token' => 'required|string',
+            'target_roas' => 'nullable|numeric',
+            'target_cpa' => 'nullable|numeric',
+        ]);
+
+        $metaAccountId = preg_replace('/^act_/', '', trim($validated['meta_account_id']));
+
+        $account = AdAccount::updateOrCreate(
+            ['meta_account_id' => $metaAccountId],
+            [
+                'name' => "Meta Account act_{$metaAccountId}",
+                'access_token' => $validated['access_token'],
+                'target_roas' => $validated['target_roas'] ?? 2.50,
+                'target_cpa' => $validated['target_cpa'] ?? 100000.00,
+                'status' => 'ACTIVE',
+            ]
+        );
+
+        try {
+            $api = \FacebookAds\Api::init(
+                config('meta.app_id') ?: 'dummy_app_id',
+                config('meta.app_secret') ?: 'dummy_secret',
+                $validated['access_token']
+            );
+            $metaAccount = new \FacebookAds\Object\AdAccount('act_' . $metaAccountId);
+            $accountData = $metaAccount->read([
+                \FacebookAds\Object\Fields\AdAccountFields::NAME,
+                \FacebookAds\Object\Fields\AdAccountFields::CURRENCY,
+                \FacebookAds\Object\Fields\AdAccountFields::TIMEZONE_NAME,
+            ]);
+
+            $account->update([
+                'name' => $accountData->{\FacebookAds\Object\Fields\AdAccountFields::NAME} ?? $account->name,
+                'currency' => $accountData->{\FacebookAds\Object\Fields\AdAccountFields::CURRENCY} ?? 'IDR',
+                'timezone_name' => $accountData->{\FacebookAds\Object\Fields\AdAccountFields::TIMEZONE_NAME} ?? 'Asia/Jakarta',
+            ]);
+
+            $campaigns = $metaAccount->getCampaigns([
+                \FacebookAds\Object\Fields\CampaignFields::ID,
+                \FacebookAds\Object\Fields\CampaignFields::NAME,
+                \FacebookAds\Object\Fields\CampaignFields::OBJECTIVE,
+                \FacebookAds\Object\Fields\CampaignFields::STATUS,
+                \FacebookAds\Object\Fields\CampaignFields::DAILY_BUDGET,
+            ]);
+
+            foreach ($campaigns as $camp) {
+                $cData = $camp->getData();
+                Campaign::updateOrCreate(
+                    ['meta_campaign_id' => $cData['id']],
+                    [
+                        'ad_account_id' => $account->id,
+                        'name' => $cData['name'] ?? 'Unnamed Campaign',
+                        'objective' => $cData['objective'] ?? 'OUTCOME_SALES',
+                        'status' => $cData['status'] ?? 'ACTIVE',
+                        'daily_budget' => isset($cData['daily_budget']) ? ($cData['daily_budget'] / 100) : null,
+                    ]
+                );
+            }
+
+            return redirect()->route('dashboard')->with('success', "🎉 Berhasil terhubung ke akun '{$account->name}' via Token! Live campaign berhasil disinkronkan.");
+        } catch (\Throwable $e) {
+            return redirect()->route('dashboard')->with('success', "Akun 'act_{$metaAccountId}' tersimpan di database lokal. Catatan koneksi: " . $e->getMessage());
+        }
+    }
 }

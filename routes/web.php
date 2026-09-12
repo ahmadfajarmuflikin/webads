@@ -8,6 +8,7 @@ Route::get('/', [DashboardController::class, 'index'])->name('dashboard');
 Route::post('/adset/{metaAdsetId}/status', [DashboardController::class, 'updateStatus'])->name('adset.status');
 Route::post('/adset/{metaAdsetId}/scale', [DashboardController::class, 'scaleBudget'])->name('adset.scale');
 Route::post('/automation/run-watchdog', [DashboardController::class, 'runWatchdogNow'])->name('automation.watchdog');
+Route::post('/account/connect-manual', [DashboardController::class, 'connectManual'])->name('account.connect_manual');
 
 /*
 |--------------------------------------------------------------------------
