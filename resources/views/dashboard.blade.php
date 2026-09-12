@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="csrf-token" content="{{ csrf_token() }}">
     <title>Meta Ads AI Manager & Smart Optimizer - Laravel 12</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
@@ -546,89 +547,106 @@
                     <p class="text-xs text-slate-400 mt-0.5">Analisis efektivitas performa 3 hari terakhir dengan rekomendasi aksi otomatis</p>
                 </div>
                 <div class="flex flex-wrap items-center gap-3">
+                    <!-- Live Search Box -->
+                    <div class="relative">
+                        <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-500 text-xs"></i>
+                        <input type="text" id="adsetSearchInput" onkeyup="filterAdsetTable()" placeholder="Cari adset / campaign..." class="bg-slate-950 border border-slate-800 rounded-lg pl-8 pr-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-blue-500 w-52 transition">
+                    </div>
+
                     <!-- Filter Tab Status -->
                     <div class="flex items-center gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-xs font-medium">
                         <a href="{{ request()->fullUrlWithQuery(['filter_status' => 'all']) }}" class="px-2.5 py-1 rounded-md transition {{ ($filterStatus ?? 'all') === 'all' ? 'bg-indigo-600 text-white font-bold' : 'text-slate-400 hover:text-white' }}">Semua</a>
                         <a href="{{ request()->fullUrlWithQuery(['filter_status' => 'active']) }}" class="px-2.5 py-1 rounded-md transition {{ ($filterStatus ?? '') === 'active' ? 'bg-emerald-600 text-white font-bold' : 'text-slate-400 hover:text-white' }}">🟢 Hanya Aktif</a>
                         <a href="{{ request()->fullUrlWithQuery(['filter_status' => 'paused']) }}" class="px-2.5 py-1 rounded-md transition {{ ($filterStatus ?? '') === 'paused' ? 'bg-slate-800 text-white font-bold' : 'text-slate-400 hover:text-white' }}">⏸ Nonaktif (Paused)</a>
                     </div>
-
-                    <div class="flex items-center gap-2 text-xs">
-                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-emerald-950/60 border border-emerald-600/40 text-emerald-400 text-[11px]">
-                            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse"></span> SCALING
-                        </span>
-                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-red-950/60 border border-red-600/40 text-red-400 text-[11px]">
-                            <span class="w-1.5 h-1.5 rounded-full bg-red-400"></span> BONCOS / KILL
-                        </span>
-                        <span class="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-amber-950/60 border border-amber-600/40 text-amber-400 text-[11px]">
-                            <span class="w-1.5 h-1.5 rounded-full bg-amber-400"></span> FATIGUE
-                        </span>
-                    </div>
                 </div>
             </div>
 
             <div class="overflow-x-auto">
                 <table class="w-full text-left text-xs">
-                    <thead class="bg-slate-950/60 text-slate-400 uppercase tracking-wider font-medium border-b border-slate-800">
+                    <thead class="bg-slate-950/70 text-slate-400 uppercase tracking-wider font-semibold border-b border-slate-800 text-[11px]">
                         <tr>
-                            <th class="px-6 py-4">AdSet & Status</th>
-                            <th class="px-4 py-4">Health Score</th>
-                            <th class="px-4 py-4">Status Efektivitas</th>
-                            <th class="px-4 py-4">Spend & Konversi</th>
-                            <th class="px-4 py-4">ROAS & CPA</th>
-                            <th class="px-4 py-4">Frekuensi & CTR</th>
-                            <th class="px-4 py-4">Diagnosa Smart System</th>
-                            <th class="px-6 py-4 text-right">Aksi Kontrol</th>
+                            <th class="px-6 py-3.5">AdSet & Info</th>
+                            <th class="px-4 py-3.5">Health Score</th>
+                            <th class="px-4 py-3.5">Status Efektivitas</th>
+                            <th class="px-4 py-3.5">Spend & Konversi</th>
+                            <th class="px-4 py-3.5">ROAS & CPA</th>
+                            <th class="px-4 py-3.5">Hook (CTR & Freq)</th>
+                            <th class="px-4 py-3.5">Diagnosa Smart</th>
+                            <th class="px-6 py-3.5 text-right">Aksi Kontrol</th>
                         </tr>
                     </thead>
-                    <tbody class="divide-y divide-slate-800/80">
+                    <tbody class="divide-y divide-slate-800/60" id="adsetTableBody">
                         @forelse($evaluatedAdsets as $item)
                         @php
                             $m = $item['metrics'];
                             $verdictColors = [
-                                'SCALING_CANDIDATE' => 'bg-emerald-950/80 border-emerald-500 text-emerald-300',
-                                'LOSING_MONEY' => 'bg-red-950/80 border-red-500 text-red-300',
-                                'CREATIVE_FATIGUE' => 'bg-amber-950/80 border-amber-500 text-amber-300',
-                                'HEALTHY_STABLE' => 'bg-blue-950/80 border-blue-500 text-blue-300',
-                                'LEARNING_PHASE' => 'bg-slate-800 border-slate-600 text-slate-300',
+                                'SCALING_CANDIDATE' => 'bg-emerald-950/80 border-emerald-500/60 text-emerald-300',
+                                'LOSING_MONEY' => 'bg-red-950/80 border-red-500/60 text-red-300',
+                                'CREATIVE_FATIGUE' => 'bg-amber-950/80 border-amber-500/60 text-amber-300',
+                                'HEALTHY_STABLE' => 'bg-blue-950/80 border-blue-500/60 text-blue-300',
+                                'LEARNING_PHASE' => 'bg-slate-800/80 border-slate-600/60 text-slate-300',
                             ];
                             $vClass = $verdictColors[$item['verdict']] ?? 'bg-slate-800 border-slate-600 text-slate-300';
+                            
+                            $analysisPayload = [
+                                'meta_id' => $item['meta_id'],
+                                'name' => $item['name'],
+                                'campaign_name' => $item['model']->campaign?->name ?? 'Campaign',
+                                'status' => $item['status'],
+                                'daily_budget' => (float) $item['current_daily_budget'],
+                                'health_score' => $item['health_score'],
+                                'verdict' => $item['verdict'],
+                                'risk_level' => $item['risk_level'],
+                                'metrics' => $item['metrics'],
+                                'reasons' => $item['reasons'],
+                                'recommended_actions' => $item['recommended_actions'],
+                            ];
                         @endphp
-                        <tr class="hover:bg-slate-800/40 transition">
-                            <td class="px-6 py-4">
-                                <div class="font-semibold text-white text-sm">{{ $item['name'] }}</div>
-                                <div class="text-[11px] text-slate-400 mt-0.5 flex items-center gap-2 font-mono">
-                                    <span>ID: {{ $item['meta_id'] }}</span>
-                                    <span>•</span>
-                                    <span>Budget: Rp {{ number_format($item['current_daily_budget'], 0, ',', '.') }}/hari</span>
-                                    <span>•</span>
-                                    <span class="inline-block px-1.5 py-0.2 rounded {{ $item['status'] === 'ACTIVE' ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-400' }} text-[10px]">
+                        <tr class="hover:bg-slate-800/30 transition adset-row" data-name="{{ strtolower($item['name'] . ' ' . ($item['model']->campaign?->name ?? '')) }}">
+                            <td class="px-6 py-3.5">
+                                <div class="font-semibold text-white text-sm hover:text-indigo-400 transition cursor-pointer" onclick="openAnalysisModal(this.closest('tr').querySelector('.btn-analisa'))">
+                                    {{ $item['name'] }}
+                                </div>
+                                <div class="text-[11px] text-slate-400 mt-1 flex flex-wrap items-center gap-2 font-mono">
+                                    <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-semibold {{ $item['status'] === 'ACTIVE' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' : 'bg-slate-800 text-slate-400 border border-slate-700' }}">
+                                        <span class="w-1.5 h-1.5 rounded-full {{ $item['status'] === 'ACTIVE' ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500' }}"></span>
                                         {{ $item['status'] }}
                                     </span>
+                                    <span>•</span>
+                                    <span>ID: {{ $item['meta_id'] }}</span>
+                                    <span>•</span>
+                                    <span class="text-slate-300 font-medium">Rp {{ number_format($item['current_daily_budget'], 0, ',', '.') }}/hari</span>
                                 </div>
                                 <div class="mt-1.5 flex flex-wrap items-center gap-1.5">
-                                    <span class="text-[10px] bg-slate-800 text-slate-400 px-1.5 py-0.5 rounded">
+                                    <span class="text-[10px] bg-slate-800/80 border border-slate-700/60 text-slate-300 px-2 py-0.5 rounded-md font-medium">
                                         📁 {{ $item['model']->campaign?->name ?? 'Campaign' }}
                                     </span>
                                     @php
                                         $ads = $item['model']->ads ?? collect();
-                                        $videoCount = $ads->filter(fn($ad) => ($ad->creative_payload['media_type'] ?? '') === 'VIDEO')->count();
-                                        $imageCount = $ads->filter(fn($ad) => ($ad->creative_payload['media_type'] ?? '') === 'IMAGE')->count();
+                                        $videoCount = $ads->filter(fn($ad) => ($ad->creative_payload['format'] ?? $ad->creative_payload['media_type'] ?? '') === 'VIDEO')->count();
+                                        $imageCount = $ads->filter(fn($ad) => ($ad->creative_payload['format'] ?? $ad->creative_payload['media_type'] ?? '') === 'IMAGE')->count();
+                                        $carouselCount = $ads->filter(fn($ad) => ($ad->creative_payload['format'] ?? '') === 'CAROUSEL')->count();
                                     @endphp
                                     @if($videoCount > 0)
                                         <span class="text-[10px] bg-purple-950/80 border border-purple-500/40 text-purple-300 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
-                                            <i class="fa-solid fa-film"></i> {{ $videoCount }} Video Ads
+                                            <i class="fa-solid fa-film"></i> {{ $videoCount }} Video
                                         </span>
                                     @endif
                                     @if($imageCount > 0)
                                         <span class="text-[10px] bg-sky-950/80 border border-sky-500/40 text-sky-300 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
-                                            <i class="fa-solid fa-image"></i> {{ $imageCount }} Image Ads
+                                            <i class="fa-solid fa-image"></i> {{ $imageCount }} Image
+                                        </span>
+                                    @endif
+                                    @if($carouselCount > 0)
+                                        <span class="text-[10px] bg-pink-950/80 border border-pink-500/40 text-pink-300 px-1.5 py-0.5 rounded font-mono flex items-center gap-1">
+                                            <i class="fa-solid fa-layer-group"></i> {{ $carouselCount }} Carousel
                                         </span>
                                     @endif
                                 </div>
                             </td>
 
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3.5 whitespace-nowrap">
                                 <div class="flex items-center space-x-2">
                                     <span class="font-bold text-sm {{ $item['health_score'] >= 80 ? 'text-emerald-400' : ($item['health_score'] < 40 ? 'text-red-400' : 'text-amber-400') }}">
                                         {{ $item['health_score'] }}/100
@@ -639,18 +657,28 @@
                                 </div>
                             </td>
 
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3.5 whitespace-nowrap">
                                 <span class="inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold border {{ $vClass }}">
-                                    {{ $item['verdict'] }}
+                                    @if($item['verdict'] === 'SCALING_CANDIDATE')
+                                        🚀 SIAP SCALE
+                                    @elseif($item['verdict'] === 'LOSING_MONEY')
+                                        🛑 BONCOS / CUT
+                                    @elseif($item['verdict'] === 'CREATIVE_FATIGUE')
+                                        ⚠️ FATIGUE
+                                    @elseif($item['verdict'] === 'HEALTHY_STABLE')
+                                        🟢 STABIL
+                                    @else
+                                        ⏳ {{ $item['verdict'] }}
+                                    @endif
                                 </span>
                             </td>
 
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3.5 whitespace-nowrap">
                                 <div class="font-semibold text-white">Rp {{ number_format($m['spend'], 0, ',', '.') }}</div>
-                                <div class="text-emerald-400 font-bold mt-0.5">{{ $m['conversions'] }} Konversi</div>
+                                <div class="text-emerald-400 font-bold mt-0.5 text-xs">{{ $m['conversions'] }} Pembelian</div>
                             </td>
 
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3.5 whitespace-nowrap">
                                 <div class="font-bold text-sm {{ $m['roas'] >= $m['target_roas'] ? 'text-emerald-400' : 'text-amber-400' }}">
                                     {{ $m['roas'] }}x ROAS
                                 </div>
@@ -659,49 +687,61 @@
                                 </div>
                             </td>
 
-                            <td class="px-4 py-4">
+                            <td class="px-4 py-3.5 whitespace-nowrap">
                                 <div class="flex items-center gap-1.5">
                                     <span class="font-bold text-sm {{ $m['ctr'] >= 2.0 ? 'text-emerald-400' : ($m['ctr'] < 1.0 ? 'text-red-400' : 'text-slate-200') }}">
-                                        {{ $m['ctr'] }}%
+                                        {{ $m['ctr'] }}% CTR
                                     </span>
                                     @if(!empty($m['ctr_grade']))
-                                        <span class="text-[9px] px-1.5 py-0.2 rounded font-bold uppercase {{ $m['ctr'] >= 2.0 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : ($m['ctr'] < 1.0 ? 'bg-red-950/80 text-red-300 border border-red-500/30' : 'bg-slate-800 text-slate-300') }}">
+                                        <span class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase {{ $m['ctr'] >= 2.0 ? 'bg-emerald-950/80 text-emerald-300 border border-emerald-500/30' : ($m['ctr'] < 1.0 ? 'bg-red-950/80 text-red-300 border border-red-500/30' : 'bg-slate-800 text-slate-300') }}">
                                             {{ $m['ctr_grade'] }}
                                         </span>
                                     @endif
                                 </div>
                                 <div class="text-[11px] text-slate-400 mt-1 flex items-center gap-1.5 font-mono">
-                                    <span>Freq: <strong class="{{ $m['frequency'] > 2.8 ? 'text-amber-400' : 'text-white' }}">{{ $m['frequency'] }}</strong></span>
+                                    <span>Freq: <strong class="{{ $m['frequency'] > 2.8 ? 'text-amber-400' : 'text-white' }}">{{ $m['frequency'] }}x</strong></span>
                                     <span>•</span>
                                     <span>CVR: <strong class="text-indigo-300">{{ $m['cvr'] ?? 0 }}%</strong></span>
                                 </div>
                                 @if(isset($m['ctr_decay_ratio']) && $m['ctr_decay_ratio'] < 0.75)
                                     <div class="mt-1 text-[10px] text-amber-400 font-semibold flex items-center gap-1">
-                                        <i class="fa-solid fa-triangle-exclamation"></i> CTR turun {{ round((1 - $m['ctr_decay_ratio']) * 100) }}% (Fatigue)
+                                        <i class="fa-solid fa-triangle-exclamation"></i> Turun {{ round((1 - $m['ctr_decay_ratio']) * 100) }}% (Fatigue)
                                     </div>
                                 @endif
                             </td>
 
-                            <td class="px-4 py-4 max-w-xs">
-                                <ul class="text-[11px] text-slate-300 space-y-1">
-                                    @foreach($item['reasons'] as $r)
-                                        <li class="flex items-start gap-1">
-                                            <span class="text-indigo-400">•</span>
-                                            <span>{{ $r }}</span>
-                                        </li>
-                                    @endforeach
-                                </ul>
+                            <td class="px-4 py-3.5 max-w-xs">
+                                <div class="text-[11px] text-slate-300 leading-snug line-clamp-2">
+                                    {{ $item['reasons'][0] ?? 'Performa stabil sesuai target kriteria.' }}
+                                </div>
+                                @if(count($item['reasons']) > 1)
+                                    <button type="button" onclick="openAnalysisModal(this.closest('tr').querySelector('.btn-analisa'))" class="text-[10px] text-indigo-400 hover:text-indigo-300 mt-1 flex items-center gap-1 font-medium transition cursor-pointer">
+                                        <i class="fa-solid fa-circle-info text-[9px]"></i>
+                                        <span>+{{ count($item['reasons']) - 1 }} temuan lainnya (klik analisa)</span>
+                                    </button>
+                                @endif
                             </td>
 
-                            <td class="px-6 py-4 text-right whitespace-nowrap">
-                                <div class="flex items-center justify-end space-x-2">
+                            <td class="px-6 py-3.5 text-right whitespace-nowrap">
+                                <div class="flex items-center justify-end space-x-1.5">
+                                    <!-- Tombol Analisa Data Lengkap -->
+                                    <button type="button" 
+                                        data-adset="{{ htmlspecialchars(json_encode($analysisPayload), ENT_QUOTES, 'UTF-8') }}" 
+                                        onclick="openAnalysisModal(this)" 
+                                        class="btn-analisa px-2.5 py-1.5 bg-indigo-600/20 hover:bg-indigo-600/35 text-indigo-300 hover:text-white border border-indigo-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1.5 shadow-sm cursor-pointer" 
+                                        title="Lihat Analisa Data Lengkap & Conversion Funnel">
+                                        <i class="fa-solid fa-chart-pie text-xs"></i>
+                                        <span>Analisa</span>
+                                    </button>
+
                                     @if($item['status'] === 'ACTIVE')
                                         <!-- Scale Up +20% -->
                                         <form action="{{ route('adset.scale', $item['meta_id']) }}" method="POST" class="inline">
                                             @csrf
                                             <input type="hidden" name="percentage" value="20">
-                                            <button type="submit" class="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition" title="Scale Budget +20%">
-                                                +20% Scale
+                                            <button type="submit" class="px-2.5 py-1.5 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-400 border border-emerald-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1" title="Scale Budget +20%">
+                                                <i class="fa-solid fa-arrow-trend-up text-[10px]"></i>
+                                                <span>+20%</span>
                                             </button>
                                         </form>
 
@@ -709,8 +749,9 @@
                                         <form action="{{ route('adset.status', $item['meta_id']) }}" method="POST" class="inline">
                                             @csrf
                                             <input type="hidden" name="status" value="PAUSED">
-                                            <button type="submit" class="px-2.5 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold transition" title="Pause Adset">
-                                                <i class="fa-solid fa-pause"></i> Pause
+                                            <button type="submit" class="px-2 py-1.5 bg-red-600/20 hover:bg-red-600/30 text-red-400 border border-red-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1" title="Pause Adset">
+                                                <i class="fa-solid fa-pause text-[10px]"></i>
+                                                <span>Pause</span>
                                             </button>
                                         </form>
                                     @else
@@ -718,8 +759,9 @@
                                         <form action="{{ route('adset.status', $item['meta_id']) }}" method="POST" class="inline">
                                             @csrf
                                             <input type="hidden" name="status" value="ACTIVE">
-                                            <button type="submit" class="px-2.5 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-semibold transition" title="Aktifkan Kembali">
-                                                <i class="fa-solid fa-play"></i> Activate
+                                            <button type="submit" class="px-2 py-1.5 bg-blue-600/20 hover:bg-blue-600/30 text-blue-400 border border-blue-500/30 rounded-lg text-xs font-semibold transition inline-flex items-center gap-1" title="Aktifkan Kembali">
+                                                <i class="fa-solid fa-play text-[10px]"></i>
+                                                <span>Aktifkan</span>
                                             </button>
                                         </form>
                                     @endif
@@ -728,9 +770,18 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="8" class="text-center py-8 text-slate-500">Belum ada adset yang disinkronkan.</td>
+                            <td colspan="8" class="text-center py-10 text-slate-500">Belum ada adset yang disinkronkan.</td>
                         </tr>
                         @endforelse
+                        <!-- Baris kosong saat filter search tidak ada hasil -->
+                        <tr id="adsetSearchEmptyRow" style="display: none;">
+                            <td colspan="8" class="text-center py-10 text-slate-500">
+                                <div class="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 mb-2">
+                                    <i class="fa-solid fa-magnifying-glass text-sm"></i>
+                                </div>
+                                <p class="text-xs font-semibold text-slate-300">Tidak ada adset atau campaign yang cocok dengan pencarian</p>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -820,7 +871,235 @@
 
     </main>
 
+    <!-- Modal Analisa Data Lengkap & Conversion Funnel -->
+    <div id="deepAnalysisModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 overflow-y-auto">
+        <div class="relative w-full max-w-4xl bg-slate-900 border border-slate-700/80 rounded-2xl shadow-2xl overflow-hidden max-h-[90vh] flex flex-col my-auto">
+            <!-- Modal Header -->
+            <div class="px-6 py-4 bg-slate-950/90 border-b border-slate-800 flex items-center justify-between sticky top-0 z-10">
+                <div class="flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 to-purple-600 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
+                        <i class="fa-solid fa-chart-pie text-lg"></i>
+                    </div>
+                    <div>
+                        <div class="flex items-center gap-2">
+                            <h3 id="modalAdsetName" class="text-base font-bold text-white truncate max-w-sm sm:max-w-md">Nama Adset</h3>
+                            <span id="modalAdsetStatusBadge" class="px-2 py-0.5 rounded text-[10px] font-bold">ACTIVE</span>
+                        </div>
+                        <div class="flex items-center gap-2 text-xs text-slate-400 mt-0.5 font-mono">
+                            <span id="modalCampaignName" class="text-indigo-400 font-sans font-medium">Campaign</span>
+                            <span>•</span>
+                            <span id="modalMetaId" class="text-slate-500">ID: -</span>
+                            <span>•</span>
+                            <span id="modalBudget" class="text-emerald-400">Budget: -</span>
+                        </div>
+                    </div>
+                </div>
+                <button type="button" onclick="closeAnalysisModal()" class="w-8 h-8 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white flex items-center justify-center transition cursor-pointer">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <!-- Modal Body (Scrollable) -->
+            <div class="p-6 overflow-y-auto space-y-6 flex-1 text-slate-200">
+
+                <!-- Banner Health & Verdict -->
+                <div id="modalVerdictBanner" class="p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                    <div class="flex items-center gap-4">
+                        <div class="text-center bg-slate-950/80 px-4 py-2.5 rounded-xl border border-slate-800 min-w-[90px]">
+                            <div class="text-[10px] uppercase tracking-wider text-slate-400 font-bold">Health Score</div>
+                            <div id="modalHealthScore" class="text-2xl font-black text-emerald-400">0/100</div>
+                        </div>
+                        <div>
+                            <div class="flex items-center gap-2">
+                                <span class="text-xs text-slate-400 font-semibold">Kesimpulan Evaluasi:</span>
+                                <span id="modalVerdictBadge" class="px-2 py-0.5 rounded text-xs font-bold uppercase tracking-wide">STATUS</span>
+                            </div>
+                            <div id="modalVerdictDesc" class="text-xs text-slate-300 mt-1 font-medium">Deskripsi status evaluasi.</div>
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-2 self-start sm:self-center">
+                        <span class="text-xs text-slate-400">Tingkat Risiko:</span>
+                        <span id="modalRiskLevelBadge" class="px-2.5 py-0.5 rounded text-[11px] font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700">LOW</span>
+                    </div>
+                </div>
+
+                <!-- 4 Grid KPI Card Metrik Penting -->
+                <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                    <!-- Card 1: Finansial -->
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5">
+                        <div class="text-slate-400 text-[11px] font-semibold flex items-center justify-between">
+                            <span>Total Biaya (Spend)</span>
+                            <i class="fa-solid fa-wallet text-slate-500"></i>
+                        </div>
+                        <div id="modalSpend" class="text-base font-bold text-white mt-1">Rp 0</div>
+                        <div class="mt-2 pt-2 border-t border-slate-800/60 text-[11px] flex justify-between text-slate-400">
+                            <span>Total Omset:</span>
+                            <span id="modalRevenue" class="font-semibold text-emerald-400">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 2: ROAS & Target -->
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5">
+                        <div class="text-slate-400 text-[11px] font-semibold flex items-center justify-between">
+                            <span>ROAS Aktual</span>
+                            <i class="fa-solid fa-chart-line text-slate-500"></i>
+                        </div>
+                        <div id="modalRoas" class="text-base font-bold text-white mt-1">0.00x</div>
+                        <div class="mt-2 pt-2 border-t border-slate-800/60 text-[11px] flex justify-between text-slate-400">
+                            <span>Target ROAS:</span>
+                            <span id="modalTargetRoas" class="font-semibold text-slate-300">2.50x</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 3: Biaya Akuisisi (CPA) -->
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5">
+                        <div class="text-slate-400 text-[11px] font-semibold flex items-center justify-between">
+                            <span>Cost Per Action (CPA)</span>
+                            <i class="fa-solid fa-bullseye text-slate-500"></i>
+                        </div>
+                        <div id="modalCpa" class="text-base font-bold text-white mt-1">Rp 0</div>
+                        <div class="mt-2 pt-2 border-t border-slate-800/60 text-[11px] flex justify-between text-slate-400">
+                            <span>Target CPA:</span>
+                            <span id="modalTargetCpa" class="font-semibold text-slate-300">Rp 0</span>
+                        </div>
+                    </div>
+
+                    <!-- Card 4: Konversi Total -->
+                    <div class="bg-slate-950/60 border border-slate-800/80 rounded-xl p-3.5">
+                        <div class="text-slate-400 text-[11px] font-semibold flex items-center justify-between">
+                            <span>Hasil Konversi</span>
+                            <i class="fa-solid fa-bag-shopping text-slate-500"></i>
+                        </div>
+                        <div id="modalConversions" class="text-base font-bold text-emerald-400 mt-1">0 Pembelian</div>
+                        <div class="mt-2 pt-2 border-t border-slate-800/60 text-[11px] flex justify-between text-slate-400">
+                            <span>CVR (Klik ke Beli):</span>
+                            <span id="modalCvr" class="font-semibold text-indigo-300">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Conversion Funnel & Creative Diagnostic (3 Stages) -->
+                <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4">
+                    <div class="flex items-center justify-between mb-3 border-b border-slate-800/80 pb-2">
+                        <h4 class="text-xs font-bold text-white flex items-center gap-2">
+                            <i class="fa-solid fa-filter text-indigo-400"></i>
+                            3-Stage Conversion Funnel & Daya Tarik Kreatif
+                        </h4>
+                        <span class="text-[10px] text-slate-400 font-mono">Top $\rightarrow$ Bottom Funnel</span>
+                    </div>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+                        <!-- Stage 1: Awareness & Hook -->
+                        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-lg flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1">
+                                    <span>1. Awareness (Tampilan)</span>
+                                    <span class="text-xs text-sky-400"><i class="fa-solid fa-eye"></i></span>
+                                </div>
+                                <div id="modalImpressions" class="text-lg font-bold text-white">0</div>
+                                <div class="text-[11px] text-slate-400 mt-1">Total impresi iklan yang disajikan Meta.</div>
+                            </div>
+                            <div class="mt-3 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 flex justify-between">
+                                <span>Frekuensi Paparan:</span>
+                                <span id="modalFrequency" class="font-semibold text-white">1.00x</span>
+                            </div>
+                        </div>
+
+                        <!-- Stage 2: Engagement & CTR -->
+                        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-lg flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1">
+                                    <span>2. Hook / Daya Tarik (Klik)</span>
+                                    <span class="text-xs text-amber-400"><i class="fa-solid fa-arrow-pointer"></i></span>
+                                </div>
+                                <div class="flex items-baseline gap-2">
+                                    <div id="modalClicks" class="text-lg font-bold text-white">0</div>
+                                    <div class="text-xs font-semibold text-slate-400">(<span id="modalCtr" class="text-amber-400 font-bold">0%</span> CTR)</div>
+                                </div>
+                                <div id="modalCtrGrade" class="text-[10px] mt-1 inline-block px-1.5 py-0.5 rounded font-bold uppercase bg-slate-800 text-slate-300">GRADE</div>
+                            </div>
+                            <div class="mt-3 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 flex justify-between">
+                                <span>Biaya per Klik (CPC):</span>
+                                <span id="modalCpc" class="font-semibold text-white">Rp 0</span>
+                            </div>
+                        </div>
+
+                        <!-- Stage 3: Conversion & Purchases -->
+                        <div class="bg-slate-900/80 border border-slate-800 p-3 rounded-lg flex flex-col justify-between">
+                            <div>
+                                <div class="flex items-center justify-between text-[11px] text-slate-400 font-medium mb-1">
+                                    <span>3. Closing / Pembelian</span>
+                                    <span class="text-xs text-emerald-400"><i class="fa-solid fa-cart-shopping"></i></span>
+                                </div>
+                                <div id="modalFunnelConversions" class="text-lg font-bold text-emerald-400">0</div>
+                                <div class="text-[11px] text-slate-400 mt-1">Hasil transaksi pembelian yang tercatat pixel Meta.</div>
+                            </div>
+                            <div class="mt-3 pt-2 border-t border-slate-800/80 text-[11px] text-slate-400 flex justify-between">
+                                <span>Conversion Rate (CVR):</span>
+                                <span id="modalFunnelCvr" class="font-semibold text-emerald-300">0%</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Funnel Bottleneck Insight Box -->
+                    <div id="modalFunnelInsight" class="mt-3 p-3 rounded-lg bg-indigo-950/40 border border-indigo-500/30 text-xs text-indigo-200 flex items-start gap-2.5">
+                        <i class="fa-solid fa-lightbulb text-indigo-400 mt-0.5"></i>
+                        <div id="modalFunnelInsightText">Menganalisis alur funnel...</div>
+                    </div>
+                </div>
+
+                <!-- Creative Saturation / Decay Alert -->
+                <div id="modalDecaySection" class="p-3.5 rounded-xl border border-amber-500/30 bg-amber-950/20 hidden">
+                    <div class="flex items-center gap-2 text-xs font-bold text-amber-300">
+                        <i class="fa-solid fa-triangle-exclamation"></i>
+                        <span>Peringatan Kelelahan Materi Iklan (Creative Fatigue)</span>
+                    </div>
+                    <p id="modalDecayText" class="text-xs text-slate-300 mt-1">CTR adset ini mengalami penurunan performa dibandingkan 14 hari sebelumnya.</p>
+                </div>
+
+                <!-- Diagnosa Lengkap & Rekomendasi Aksi AI -->
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Temuan Diagnosa -->
+                    <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4">
+                        <h4 class="text-xs font-bold text-white mb-2.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-magnifying-glass-chart text-purple-400"></i>
+                            Temuan Diagnosa Smart Engine
+                        </h4>
+                        <ul id="modalReasonsList" class="space-y-2 text-xs text-slate-300">
+                            <!-- populated via js -->
+                        </ul>
+                    </div>
+
+                    <!-- Rekomendasi Aksi AI -->
+                    <div class="bg-slate-950/70 border border-slate-800 rounded-xl p-4">
+                        <h4 class="text-xs font-bold text-white mb-2.5 flex items-center gap-1.5">
+                            <i class="fa-solid fa-wand-magic-sparkles text-emerald-400"></i>
+                            Rekomendasi Aksi AI Agent
+                        </h4>
+                        <ul id="modalRecommendationsList" class="space-y-2 text-xs text-slate-300">
+                            <!-- populated via js -->
+                        </ul>
+                    </div>
+                </div>
+
+            </div>
+
+            <!-- Modal Footer with Quick Action Buttons -->
+            <div class="px-6 py-4 bg-slate-950/90 border-t border-slate-800 flex flex-wrap items-center justify-between gap-3 sticky bottom-0 z-10">
+                <button type="button" onclick="closeAnalysisModal()" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg text-xs font-semibold transition cursor-pointer">
+                    Tutup
+                </button>
+                <div class="flex items-center gap-2" id="modalActionButtons">
+                    <!-- Dynamic Quick Action Forms/Buttons -->
+                </div>
+            </div>
+        </div>
+    </div>
+
     <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
+        <p>&copy; {{ date('Y') }} Meta Ads Automation & AI Operations Platform. All rights reserved.</p>
+    </footer>
+
     <script>
         function toggleDropdown(id) {
             const el = document.getElementById(id);
@@ -828,6 +1107,7 @@
                 el.classList.toggle('hidden');
             }
         }
+
         window.addEventListener('click', function(e) {
             const createContainer = document.getElementById('dropdownCreateContainer');
             const createMenu = document.getElementById('dropdownCreateMenu');
@@ -840,7 +1120,263 @@
             if (accountContainer && !accountContainer.contains(e.target)) {
                 accountMenu?.classList.add('hidden');
             }
+
+            const deepModal = document.getElementById('deepAnalysisModal');
+            if (e.target === deepModal) {
+                closeAnalysisModal();
+            }
         });
+
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'Escape') {
+                closeAnalysisModal();
+                document.getElementById('createCampaignModal')?.classList.add('hidden');
+                document.getElementById('creativeStudioModal')?.classList.add('hidden');
+                document.getElementById('manualTokenModal')?.classList.add('hidden');
+            }
+        });
+
+        function formatRupiah(num) {
+            if (num === null || num === undefined || isNaN(num)) return 'Rp 0';
+            return 'Rp ' + Math.round(num).toString().replace(/\B(?=(\d{3})+(?!\d))/g, ".");
+        }
+
+        function filterAdsetTable() {
+            const input = document.getElementById('adsetSearchInput');
+            const query = (input ? input.value : '').toLowerCase().trim();
+            const rows = document.querySelectorAll('.adset-row');
+            let visibleCount = 0;
+
+            rows.forEach(row => {
+                const name = row.getAttribute('data-name') || '';
+                if (name.includes(query)) {
+                    row.style.display = '';
+                    visibleCount++;
+                } else {
+                    row.style.display = 'none';
+                }
+            });
+
+            const emptyRow = document.getElementById('adsetSearchEmptyRow');
+            if (emptyRow) {
+                emptyRow.style.display = (visibleCount === 0 && rows.length > 0) ? '' : 'none';
+            }
+        }
+
+        function openAnalysisModal(btn) {
+            const raw = btn.getAttribute('data-adset');
+            if (!raw) return;
+            const data = JSON.parse(raw);
+            const m = data.metrics || {};
+
+            // Header
+            document.getElementById('modalAdsetName').textContent = data.name;
+            document.getElementById('modalCampaignName').textContent = '📁 ' + (data.campaign_name || 'Campaign');
+            document.getElementById('modalMetaId').textContent = 'ID: ' + data.meta_id;
+            document.getElementById('modalBudget').textContent = 'Budget: ' + formatRupiah(data.daily_budget) + '/hari';
+
+            const statusBadge = document.getElementById('modalAdsetStatusBadge');
+            if (data.status === 'ACTIVE') {
+                statusBadge.textContent = '🟢 ACTIVE';
+                statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+            } else {
+                statusBadge.textContent = '⏸ ' + (data.status || 'PAUSED');
+                statusBadge.className = 'px-2 py-0.5 rounded text-[10px] font-bold bg-slate-800 text-slate-400 border border-slate-700';
+            }
+
+            // Health Score & Verdict
+            const healthEl = document.getElementById('modalHealthScore');
+            healthEl.textContent = data.health_score + '/100';
+            if (data.health_score >= 80) {
+                healthEl.className = 'text-2xl font-black text-emerald-400';
+            } else if (data.health_score < 40) {
+                healthEl.className = 'text-2xl font-black text-red-400';
+            } else {
+                healthEl.className = 'text-2xl font-black text-amber-400';
+            }
+
+            const verdictBadge = document.getElementById('modalVerdictBadge');
+            const verdictDesc = document.getElementById('modalVerdictDesc');
+            const banner = document.getElementById('modalVerdictBanner');
+
+            const verdictLabels = {
+                'SCALING_CANDIDATE': { 
+                    label: '🚀 Siap Scale Up', 
+                    desc: 'Performa sangat efektif dengan ROAS di atas target dan CPA sehat. Direkomendasikan naikkan budget.', 
+                    border: 'border-emerald-500/50 bg-emerald-950/20', 
+                    badge: 'bg-emerald-500/20 text-emerald-300 border border-emerald-500/40' 
+                },
+                'LOSING_MONEY': { 
+                    label: '🛑 Boncos / Perlu Pause', 
+                    desc: 'Pengeluaran melebihi batas toleransi tanpa hasil konversi memadai. Segera matikan atau perbaiki targeting/penawaran.', 
+                    border: 'border-red-500/50 bg-red-950/20', 
+                    badge: 'bg-red-500/20 text-red-300 border border-red-500/40' 
+                },
+                'CREATIVE_FATIGUE': { 
+                    label: '⚠️ Creative Fatigue', 
+                    desc: 'Frekuensi penayangan tinggi dan CTR menurun. Audiens mulai jenuh dengan visual/copy materi iklan saat ini.', 
+                    border: 'border-amber-500/50 bg-amber-950/20', 
+                    badge: 'bg-amber-500/20 text-amber-300 border border-amber-500/40' 
+                },
+                'HEALTHY_STABLE': { 
+                    label: '🟢 Sehat & Stabil', 
+                    desc: 'Adset berjalan normal dan konsisten memenuhi kriteria target performa.', 
+                    border: 'border-blue-500/50 bg-blue-950/20', 
+                    badge: 'bg-blue-500/20 text-blue-300 border border-blue-500/40' 
+                },
+                'LEARNING_PHASE': { 
+                    label: '⏳ Tahap Pembelajaran', 
+                    desc: 'Iklan masih mengumpulkan volume data algoritma Meta untuk stabilisasi delivery.', 
+                    border: 'border-slate-700 bg-slate-900', 
+                    badge: 'bg-slate-800 text-slate-300 border border-slate-700' 
+                }
+            };
+
+            const vInfo = verdictLabels[data.verdict] || { 
+                label: data.verdict, 
+                desc: 'Evaluasi performa berkala.', 
+                border: 'border-slate-700 bg-slate-900', 
+                badge: 'bg-slate-800 text-slate-300' 
+            };
+            verdictBadge.textContent = vInfo.label;
+            verdictBadge.className = 'px-2.5 py-0.5 rounded text-xs font-bold uppercase tracking-wide ' + vInfo.badge;
+            verdictDesc.textContent = vInfo.desc;
+            banner.className = 'p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 ' + vInfo.border;
+
+            document.getElementById('modalRiskLevelBadge').textContent = (data.risk_level || 'LOW') + ' RISK';
+
+            // 4 KPI Cards
+            document.getElementById('modalSpend').textContent = formatRupiah(m.spend || 0);
+            document.getElementById('modalRevenue').textContent = formatRupiah(m.revenue || 0);
+            document.getElementById('modalRoas').textContent = (m.roas || 0) + 'x';
+            document.getElementById('modalTargetRoas').textContent = (m.target_roas || 2.5) + 'x';
+            document.getElementById('modalCpa').textContent = formatRupiah(m.cpa || 0);
+            document.getElementById('modalTargetCpa').textContent = formatRupiah(m.target_cpa || 100000);
+            document.getElementById('modalConversions').textContent = (m.conversions || 0) + ' Pembelian';
+            document.getElementById('modalCvr').textContent = (m.cvr || 0) + '%';
+
+            // 3-Stage Funnel
+            document.getElementById('modalImpressions').textContent = Number(m.impressions || 0).toLocaleString('id-ID');
+            document.getElementById('modalFrequency').textContent = (m.frequency || 1.0).toFixed(2) + 'x';
+            document.getElementById('modalClicks').textContent = Number(m.clicks || 0).toLocaleString('id-ID');
+            document.getElementById('modalCtr').textContent = (m.ctr || 0) + '%';
+            document.getElementById('modalCpc').textContent = formatRupiah(m.cpc || 0);
+            document.getElementById('modalFunnelConversions').textContent = Number(m.conversions || 0).toLocaleString('id-ID');
+            document.getElementById('modalFunnelCvr').textContent = (m.cvr || 0) + '%';
+
+            // CTR Grade
+            const ctrGradeEl = document.getElementById('modalCtrGrade');
+            ctrGradeEl.textContent = m.ctr_grade || 'STANDAR';
+            if ((m.ctr || 0) >= 2.0) {
+                ctrGradeEl.className = 'text-[10px] mt-1 inline-block px-2 py-0.5 rounded font-bold uppercase bg-emerald-950/80 text-emerald-300 border border-emerald-500/30';
+            } else if ((m.ctr || 0) < 1.0) {
+                ctrGradeEl.className = 'text-[10px] mt-1 inline-block px-2 py-0.5 rounded font-bold uppercase bg-red-950/80 text-red-300 border border-red-500/30';
+            } else {
+                ctrGradeEl.className = 'text-[10px] mt-1 inline-block px-2 py-0.5 rounded font-bold uppercase bg-slate-800 text-slate-300 border border-slate-700';
+            }
+
+            // Funnel Insight
+            const insightText = document.getElementById('modalFunnelInsightText');
+            if ((m.ctr || 0) >= 1.5 && (m.cvr || 0) < 1.0 && (m.clicks || 0) >= 20) {
+                insightText.innerHTML = '<strong class="text-amber-300">⚠️ Indikasi Landing Page Bottleneck:</strong> Hook visual & materi iklan sangat menarik (CTR tinggi ' + m.ctr + '%), namun konversi landing page rendah (' + m.cvr + '%). Periksa kecepatan loading halaman, relevansi copy headline, atau kemudahan proses checkout.';
+            } else if ((m.ctr || 0) < 1.0 && (m.impressions || 0) >= 500) {
+                insightText.innerHTML = '<strong class="text-red-300">⚠️ Hook Kurang Kuat:</strong> Rasio klik audiens rendah (' + m.ctr + '%). Penonton mengabaikan iklan. Disarankan membuat variasi thumbnail baru atau video 3 detik pertama yang lebih memikat (Creative Studio).';
+            } else if ((m.roas || 0) >= (m.target_roas || 2.5)) {
+                insightText.innerHTML = '<strong class="text-emerald-300">🚀 Funnel Sangat Prima:</strong> Alur dari impresi, klik, hingga pembelian menghasilkan ROAS ' + m.roas + 'x (Target ' + m.target_roas + 'x). Adset ini sangat layak mendapatkan suntikan budget lebih tinggi!';
+            } else {
+                insightText.innerHTML = '<strong class="text-slate-300">ℹ️ Kondisi Funnel:</strong> Funnel berjalan dalam batas wajar. Evaluasi berkala seiring pertumbuhan volume transaksi.';
+            }
+
+            // Creative Decay
+            const decaySection = document.getElementById('modalDecaySection');
+            const decayText = document.getElementById('modalDecayText');
+            if (m.ctr_decay_ratio && m.ctr_decay_ratio < 0.75) {
+                decaySection.classList.remove('hidden');
+                decayText.textContent = `CTR adset ini menurun ${Math.round((1 - m.ctr_decay_ratio) * 100)}% dibandingkan riwayat 14 hari sebelumnya, seiring kenaikan frekuensi (${m.frequency || 1}x). Segera tambahkan materi iklan baru di Creative Studio.`;
+            } else {
+                decaySection.classList.add('hidden');
+            }
+
+            // Reasons List
+            const reasonsList = document.getElementById('modalReasonsList');
+            reasonsList.innerHTML = '';
+            (data.reasons || []).forEach(r => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start gap-2 text-slate-300';
+                li.innerHTML = '<span class="text-indigo-400 mt-0.5">•</span><span>' + r + '</span>';
+                reasonsList.appendChild(li);
+            });
+
+            // Recommendations List
+            const recList = document.getElementById('modalRecommendationsList');
+            recList.innerHTML = '';
+            (data.recommended_actions || []).forEach(action => {
+                const li = document.createElement('li');
+                li.className = 'flex items-start gap-2 text-slate-300';
+                let actionDesc = action;
+                if (action === 'SCALE_BUDGET_20') actionDesc = '🚀 Naikkan budget harian sebesar +20% secara bertahap.';
+                if (action === 'KILL_PAUSE') actionDesc = '🛑 Matikan / Pause adset ini segera untuk menghentikan pemborosan biaya (boncos).';
+                if (action === 'REFRESH_CREATIVES') actionDesc = '🎨 Tambahkan materi iklan baru (Creative Studio) karena audiens jenuh.';
+                if (action === 'MAINTAIN') actionDesc = '✅ Pertahankan konfigurasi saat ini dan amati pertumbuhan metrik harian.';
+                li.innerHTML = '<span class="text-emerald-400 mt-0.5"><i class="fa-solid fa-check text-[10px]"></i></span><span>' + actionDesc + '</span>';
+                recList.appendChild(li);
+            });
+
+            // Action Buttons
+            const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
+            const actionsDiv = document.getElementById('modalActionButtons');
+            actionsDiv.innerHTML = '';
+
+            if (data.status === 'ACTIVE') {
+                // Scale button form
+                const scaleForm = document.createElement('form');
+                scaleForm.action = `/adset/${data.meta_id}/scale`;
+                scaleForm.method = 'POST';
+                scaleForm.className = 'inline';
+                scaleForm.innerHTML = `
+                    <input type="hidden" name="_token" value="${csrfToken}">
+                    <input type="hidden" name="percentage" value="20">
+                    <button type="submit" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-arrow-trend-up"></i> +20% Scale Budget
+                    </button>
+                `;
+                actionsDiv.appendChild(scaleForm);
+
+                // Pause button form
+                const pauseForm = document.createElement('form');
+                pauseForm.action = `/adset/${data.meta_id}/status`;
+                pauseForm.method = 'POST';
+                pauseForm.className = 'inline';
+                pauseForm.innerHTML = `
+                    <input type="hidden" name="_token" value="${csrfToken}">
+                    <input type="hidden" name="status" value="PAUSED">
+                    <button type="submit" class="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-pause"></i> Pause Adset
+                    </button>
+                `;
+                actionsDiv.appendChild(pauseForm);
+            } else {
+                // Activate button form
+                const activateForm = document.createElement('form');
+                activateForm.action = `/adset/${data.meta_id}/status`;
+                activateForm.method = 'POST';
+                activateForm.className = 'inline';
+                activateForm.innerHTML = `
+                    <input type="hidden" name="_token" value="${csrfToken}">
+                    <input type="hidden" name="status" value="ACTIVE">
+                    <button type="submit" class="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-bold transition flex items-center gap-1.5 shadow-sm cursor-pointer">
+                        <i class="fa-solid fa-play"></i> Aktifkan Adset
+                    </button>
+                `;
+                actionsDiv.appendChild(activateForm);
+            }
+
+            document.getElementById('deepAnalysisModal').classList.remove('hidden');
+        }
+
+        function closeAnalysisModal() {
+            document.getElementById('deepAnalysisModal').classList.add('hidden');
+        }
     </script>
 </body>
 </html>
