@@ -78,16 +78,107 @@
                     <span>Connect with Meta</span>
                 </a>
 
+                <!-- Tombol Buat Campaign Baru -->
+                <button type="button" onclick="document.getElementById('createCampaignModal').classList.remove('hidden')" class="inline-flex items-center space-x-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-emerald-950/40">
+                    <i class="fa-solid fa-plus"></i>
+                    <span>Buat Campaign</span>
+                </button>
+
                 <form action="{{ route('automation.watchdog') }}" method="POST">
                     @csrf
-                    <button type="submit" class="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md transition shadow-orange-950/40">
+                    <button type="submit" class="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-orange-950/40">
                         <i class="fa-solid fa-bolt"></i>
-                        <span>Run Watchdog</span>
+                        <span>Watchdog</span>
                     </button>
                 </form>
             </div>
         </div>
     </header>
+
+    <!-- Modal Buat Campaign Baru -->
+    <div id="createCampaignModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
+        <div class="bg-slate-900 border border-slate-800 rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 max-h-[90vh] overflow-y-auto">
+            <div class="flex items-center justify-between border-b border-slate-800 pb-3">
+                <h3 class="font-bold text-white text-base flex items-center gap-2">
+                    <i class="fa-solid fa-bullhorn text-emerald-400"></i>
+                    Buat Campaign Baru ke Meta Ads
+                </h3>
+                <button type="button" onclick="document.getElementById('createCampaignModal').classList.add('hidden')" class="text-slate-400 hover:text-white text-lg">
+                    <i class="fa-solid fa-xmark"></i>
+                </button>
+            </div>
+
+            <p class="text-xs text-slate-400 leading-relaxed">
+                Campaign akan langsung dibuat dan dikirimkan ke akun <strong>{{ $account?->name ?? 'Meta Ads' }}</strong> via Marketing API.
+            </p>
+
+            <form action="{{ route('campaign.create') }}" method="POST" class="space-y-4 text-xs">
+                @csrf
+                <div>
+                    <label class="block text-slate-300 font-semibold mb-1">Nama Campaign <span class="text-red-400">*</span></label>
+                    <input type="text" name="name" placeholder="contoh: [Promo Diskon 50%] Undangan Digital Elegan" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-medium">
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Objektif Iklan <span class="text-red-400">*</span></label>
+                        <select name="objective" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+                            <option value="OUTCOME_SALES">Penjualan (Sales / Purchases)</option>
+                            <option value="OUTCOME_LEADS">Prospek / Kontak (Leads)</option>
+                            <option value="OUTCOME_TRAFFIC">Kunjungan Web (Traffic)</option>
+                            <option value="OUTCOME_ENGAGEMENT">Interaksi (Engagement)</option>
+                        </select>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Status Awal <span class="text-red-400">*</span></label>
+                        <select name="status" required class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white focus:outline-none focus:border-emerald-500">
+                            <option value="PAUSED" selected>PAUSED (Direkomendasikan)</option>
+                            <option value="ACTIVE">ACTIVE (Langsung Tayang)</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Budget Harian Campaign (IDR)</label>
+                        <input type="number" name="daily_budget" step="10000" placeholder="contoh: 150000" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500 font-mono">
+                        <span class="text-[10px] text-slate-500">Opsional jika menggunakan CBO</span>
+                    </div>
+
+                    <div>
+                        <label class="block text-slate-300 font-semibold mb-1">Nama AdSet Pertama</label>
+                        <input type="text" name="adset_name" placeholder="contoh: Broad Wanita 20-35" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-white placeholder-slate-600 focus:outline-none focus:border-emerald-500">
+                        <span class="text-[10px] text-slate-500">Opsional: membuat grup iklan sekaligus</span>
+                    </div>
+                </div>
+
+                <!-- AI Copywriting Inspiration Preview -->
+                <div class="bg-slate-950/80 p-3 rounded-xl border border-slate-800/80 space-y-2">
+                    <div class="flex items-center justify-between text-[11px]">
+                        <span class="font-semibold text-indigo-400 flex items-center gap-1">
+                            <i class="fa-solid fa-wand-magic-sparkles"></i> AI Angle Generator
+                        </span>
+                        <span class="text-slate-500">Inspirasi Sudut Pandang Iklan</span>
+                    </div>
+                    <div class="text-[11px] text-slate-400 space-y-1">
+                        <p>💡 <strong>Sudut FOMO:</strong> "Masih bingung sebar undangan mepet? Buat undangan digital elegan hanya dalam 5 menit!"</p>
+                        <p>💡 <strong>Sudut Social Proof:</strong> "Sudah dipercaya 5.000+ calon pengantin di seluruh Indonesia. Cek ratusan temanya!"</p>
+                    </div>
+                </div>
+
+                <div class="pt-3 flex items-center justify-end space-x-2 border-t border-slate-800">
+                    <button type="button" onclick="document.getElementById('createCampaignModal').classList.add('hidden')" class="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 rounded-lg font-semibold">
+                        Batal
+                    </button>
+                    <button type="submit" class="px-5 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-lg font-semibold shadow-lg shadow-emerald-950/40 flex items-center gap-2">
+                        <i class="fa-solid fa-paper-plane"></i>
+                        <span>Kirim & Buat di Meta</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 
     <!-- Modal Input Token Manual (Tanpa OAuth / Tanpa HTTPS) -->
     <div id="manualTokenModal" class="hidden fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">

@@ -128,17 +128,25 @@ class CampaignActionService
     {
         $metaCampaignId = 'meta_cmp_' . time() . '_' . rand(100, 999);
         $isLiveMeta = false;
+        $status = strtoupper($data['status'] ?? 'PAUSED');
+        $dailyBudget = !empty($data['daily_budget']) ? (float)$data['daily_budget'] : null;
 
         $api = $this->clientService->initialize($account);
         if ($api) {
             try {
                 $metaAcc = new \FacebookAds\Object\AdAccount('act_' . $account->meta_account_id);
-                $created = $metaAcc->createCampaign([], [
+                $campaignParams = [
                     CampaignFields::NAME => $data['name'],
                     CampaignFields::OBJECTIVE => $data['objective'] ?? 'OUTCOME_SALES',
-                    CampaignFields::STATUS => Campaign::STATUS_PAUSED,
+                    CampaignFields::STATUS => ($status === 'ACTIVE') ? Campaign::STATUS_ACTIVE : Campaign::STATUS_PAUSED,
                     CampaignFields::SPECIAL_AD_CATEGORIES => ['NONE'],
-                ]);
+                ];
+
+                if ($dailyBudget && $dailyBudget > 0) {
+                    $campaignParams[CampaignFields::DAILY_BUDGET] = (int)($dailyBudget * 100); // Meta uses cents
+                }
+
+                $created = $metaAcc->createCampaign([], $campaignParams);
                 $metaCampaignId = $created->id;
                 $isLiveMeta = true;
             } catch (\Throwable $e) {
@@ -151,16 +159,69 @@ class CampaignActionService
             'meta_campaign_id' => $metaCampaignId,
             'name' => $data['name'],
             'objective' => $data['objective'] ?? 'OUTCOME_SALES',
-            'status' => 'PAUSED',
+            'status' => $status,
             'buying_type' => 'AUCTION',
-            'daily_budget' => $data['daily_budget'] ?? null,
+            'daily_budget' => $dailyBudget,
         ]);
+
+        // Jika user juga meminta pembuatan AdSet pertama
+        $createdAdSet = null;
+        if (!empty($data['adset_name'])) {
+            $createdAdSet = $this->createAdSet($account, $campaign, [
+                'name' => $data['adset_name'],
+                'daily_budget' => $data['adset_budget'] ?? $dailyBudget ?? 100000,
+                'status' => $status,
+                'targeting' => $data['targeting'] ?? ['geo_locations' => ['countries' => ['ID']]],
+            ]);
+        }
 
         return [
             'success' => true,
             'campaign' => $campaign,
+            'adset' => $createdAdSet,
             'synced_to_meta' => $isLiveMeta,
-            'message' => "Campaign '{$campaign->name}' berhasil dibuat dengan status awal PAUSED."
+            'message' => "Campaign '{$campaign->name}' berhasil dibuat" . ($isLiveMeta ? " dan disinkronkan ke Meta Ads!" : " di database lokal.")
         ];
+    }
+
+    /**
+     * Membuat AdSet Baru di bawah Campaign
+     */
+    public function createAdSet(AdAccount $account, Campaign $campaign, array $data): AdSet
+    {
+        $metaAdsetId = 'meta_adset_' . time() . '_' . rand(100, 999);
+        $budget = (float)($data['daily_budget'] ?? 100000);
+        $status = strtoupper($data['status'] ?? 'PAUSED');
+
+        $api = $this->clientService->initialize($account);
+        if ($api) {
+            try {
+                $metaAcc = new \FacebookAds\Object\AdAccount('act_' . $account->meta_account_id);
+                $created = $metaAcc->createAdSet([], [
+                    AdSetFields::NAME => $data['name'],
+                    AdSetFields::CAMPAIGN_ID => $campaign->meta_campaign_id,
+                    AdSetFields::DAILY_BUDGET => (int)($budget * 100),
+                    AdSetFields::BILLING_EVENT => 'IMPRESSIONS',
+                    AdSetFields::OPTIMIZATION_GOAL => 'LINK_CLICKS',
+                    AdSetFields::BID_AMOUNT => 2000,
+                    AdSetFields::TARGETING => $data['targeting'] ?? ['geo_locations' => ['countries' => ['ID']]],
+                    AdSetFields::STATUS => ($status === 'ACTIVE') ? AdSet::STATUS_ACTIVE : AdSet::STATUS_PAUSED,
+                ]);
+                $metaAdsetId = $created->id;
+            } catch (\Throwable $e) {
+                Log::error("Failed to create AdSet on Meta: {$e->getMessage()}");
+            }
+        }
+
+        return AdSet::create([
+            'campaign_id' => $campaign->id,
+            'ad_account_id' => $account->id,
+            'meta_adset_id' => $metaAdsetId,
+            'name' => $data['name'],
+            'status' => $status,
+            'daily_budget' => $budget,
+            'optimization_goal' => 'LINK_CLICKS',
+            'targeting' => $data['targeting'] ?? ['geo_locations' => ['countries' => ['ID']]],
+        ]);
     }
 }

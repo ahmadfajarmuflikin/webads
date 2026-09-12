@@ -178,4 +178,34 @@ class DashboardController extends Controller
 
         return redirect()->route('dashboard')->with('success', "🔄 Berhasil menyinkronkan data performa ({$label}) langsung dari Meta Ads!");
     }
+
+    public function createCampaign(Request $request): RedirectResponse
+    {
+        $validated = $request->validate([
+            'name' => 'required|string|max:255',
+            'objective' => 'required|string',
+            'daily_budget' => 'nullable|numeric|min:10000',
+            'status' => 'required|string|in:PAUSED,ACTIVE',
+            'adset_name' => 'nullable|string|max:255',
+            'adset_budget' => 'nullable|numeric|min:10000',
+        ]);
+
+        $account = AdAccount::where('status', 'ACTIVE')->first();
+        if (!$account) {
+            return redirect()->route('dashboard')->with('error', 'Belum ada akun iklan aktif yang terhubung. Silakan hubungkan akun terlebih dahulu.');
+        }
+
+        $result = $this->actionService->createCampaign($account, $validated);
+
+        AgentAuditLog::create([
+            'agent_id' => 'user_dashboard',
+            'action' => 'CREATE_CAMPAIGN',
+            'target_type' => 'CAMPAIGN',
+            'target_id' => $result['campaign']->meta_campaign_id,
+            'reason' => "Membuat campaign baru '{$validated['name']}' dengan objektif {$validated['objective']} dari web dashboard",
+            'payload' => $result,
+        ]);
+
+        return redirect()->route('dashboard')->with('success', $result['message']);
+    }
 }

@@ -10,6 +10,7 @@ Route::post('/adset/{metaAdsetId}/scale', [DashboardController::class, 'scaleBud
 Route::post('/automation/run-watchdog', [DashboardController::class, 'runWatchdogNow'])->name('automation.watchdog');
 Route::post('/account/connect-manual', [DashboardController::class, 'connectManual'])->name('account.connect_manual');
 Route::post('/meta/sync', [DashboardController::class, 'syncData'])->name('meta.sync_web');
+Route::post('/campaign/create', [DashboardController::class, 'createCampaign'])->name('campaign.create');
 
 /*
 |--------------------------------------------------------------------------
