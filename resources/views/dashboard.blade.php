@@ -22,81 +22,101 @@
 </head>
 <body class="bg-slate-950 text-slate-100 font-sans antialiased min-h-screen">
 
-    <!-- Top Navigation -->
-    <header class="border-b border-slate-800 bg-slate-900/80 backdrop-blur sticky top-0 z-50">
+    <!-- Top Navigation (Simplified & Modern) -->
+    <header class="border-b border-slate-800 bg-slate-900/90 backdrop-blur sticky top-0 z-50">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <!-- Left: Brand & Active Account Pill -->
             <div class="flex items-center space-x-3">
-                <div class="w-10 h-10 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30">
-                    <i class="fa-brands fa-meta text-xl"></i>
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-blue-600 to-indigo-500 flex items-center justify-center text-white shadow-md shadow-blue-500/20">
+                    <i class="fa-brands fa-meta text-lg"></i>
                 </div>
-                <div>
-                    <h1 class="font-bold text-lg leading-tight flex items-center gap-2">
-                        Smart Meta Ads Agentic Co-Pilot
-                        <span class="text-xs bg-blue-500/20 text-blue-400 border border-blue-500/30 px-2 py-0.5 rounded-full font-mono">Laravel 12</span>
-                    </h1>
-                    <p class="text-xs text-slate-400">Hermes & OpenClaw Tool-Use Integration</p>
+                <div class="flex items-center space-x-2">
+                    <span class="font-bold text-base text-white tracking-tight">Adstool</span>
+                    <span class="text-slate-600">/</span>
+                    <div class="flex items-center gap-1.5 bg-slate-800/80 border border-slate-700/60 px-2.5 py-1 rounded-lg text-xs">
+                        <span class="w-2 h-2 rounded-full {{ $account ? 'bg-emerald-400 animate-pulse' : 'bg-slate-500' }}"></span>
+                        <span class="font-semibold text-slate-200">{{ $account?->name ?? 'Belum Terhubung' }}</span>
+                        @if($account)
+                            <span class="text-slate-500 text-[11px]">({{ $account->currency }})</span>
+                        @endif
+                    </div>
                 </div>
             </div>
 
-            <div class="flex items-center space-x-4">
-                <div class="hidden sm:flex items-center space-x-3 text-xs bg-slate-800/80 border border-slate-700/60 px-3 py-1.5 rounded-lg">
-                    <span class="text-slate-400">Akun:</span>
-                    <span class="font-semibold text-white">{{ $account?->name ?? 'Meta Account' }}</span>
-                    <span class="text-slate-500">|</span>
-                    <span class="text-slate-400">Target ROAS:</span>
-                    <span class="font-bold text-emerald-400">{{ $account?->target_roas }}x</span>
-                    <span class="text-slate-500">|</span>
-                    <span class="text-slate-400">Target CPA:</span>
-                    <span class="font-bold text-blue-400">Rp {{ number_format($account?->target_cpa ?? 0, 0, ',', '.') }}</span>
-                </div>
-
-                <!-- Form Sync Data Meta Langsung dari Dashboard (Tanpa Terminal) -->
-                <form action="{{ route('meta.sync_web') }}" method="POST" class="inline-flex items-center gap-1.5 bg-slate-800/90 border border-slate-700/80 p-0.5 rounded-lg">
+            <!-- Right: Simplified Action Center -->
+            <div class="flex items-center space-x-2.5">
+                <!-- 1. Sync Data -->
+                <form action="{{ route('meta.sync_web') }}" method="POST" class="inline-flex items-center bg-slate-800/80 border border-slate-700/80 p-0.5 rounded-lg text-xs">
                     @csrf
-                    <select name="preset" class="bg-transparent text-slate-200 text-xs rounded-md px-2 py-1.5 focus:outline-none font-medium cursor-pointer">
+                    <select name="preset" class="bg-transparent text-slate-300 text-xs px-2 py-1.5 focus:outline-none cursor-pointer">
                         <option value="today" class="bg-slate-900">Hari Ini</option>
                         <option value="yesterday" class="bg-slate-900">Kemarin</option>
-                        <option value="last_3d" class="bg-slate-900">3 Hari Terakhir</option>
-                        <option value="last_7d" selected class="bg-slate-900">7 Hari Terakhir</option>
-                        <option value="last_30d" class="bg-slate-900">30 Hari Terakhir</option>
+                        <option value="last_3d" class="bg-slate-900">3 Hari</option>
+                        <option value="last_7d" selected class="bg-slate-900">7 Hari</option>
+                        <option value="last_30d" class="bg-slate-900">30 Hari</option>
                     </select>
-                    <button type="submit" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-md shadow-md transition shadow-indigo-950/40" title="Tarik data performa, spend, dan konversi terbaru dari Meta Ads">
+                    <button type="submit" class="inline-flex items-center space-x-1 bg-indigo-600 hover:bg-indigo-500 text-white font-semibold px-2.5 py-1.5 rounded-md transition" title="Tarik data terbaru dari Meta">
                         <i class="fa-solid fa-arrows-rotate text-xs"></i>
-                        <span>Sync Data</span>
+                        <span>Sync</span>
                     </button>
                 </form>
 
-                <!-- Tombol Input Token Manual (Bypass OAuth / Tanpa HTTPS) -->
-                <button type="button" onclick="document.getElementById('manualTokenModal').classList.remove('hidden')" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 shadow-md transition" title="Hubungkan menggunakan System User Token (Tanpa butuh HTTPS / OAuth)">
-                    <i class="fa-solid fa-key text-amber-400"></i>
-                    <span>Input Token Manual</span>
-                </button>
+                <!-- 2. Dropdown: + Buat Iklan (Menggabungkan Campaign & Creative) -->
+                <div class="relative inline-block text-left" id="dropdownCreateContainer">
+                    <button type="button" onclick="toggleDropdown('dropdownCreateMenu')" class="inline-flex items-center space-x-1.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-blue-900/30">
+                        <i class="fa-solid fa-plus text-xs"></i>
+                        <span>Buat Iklan</span>
+                        <i class="fa-solid fa-chevron-down text-[10px]"></i>
+                    </button>
+                    <div id="dropdownCreateMenu" class="hidden absolute right-0 mt-2 w-56 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl p-1.5 z-50 space-y-1">
+                        <button type="button" onclick="document.getElementById('createCampaignModal').classList.remove('hidden'); toggleDropdown('dropdownCreateMenu')" class="w-full flex items-center space-x-2.5 px-3 py-2 text-xs text-left text-slate-200 hover:bg-slate-800 rounded-lg transition">
+                            <i class="fa-solid fa-bullhorn text-emerald-400 w-4 text-center"></i>
+                            <div>
+                                <div class="font-bold">Buat Campaign Baru</div>
+                                <div class="text-[10px] text-slate-400">Struktur campaign Meta baru</div>
+                            </div>
+                        </button>
+                        <button type="button" onclick="document.getElementById('creativeStudioModal').classList.remove('hidden'); toggleDropdown('dropdownCreateMenu')" class="w-full flex items-center space-x-2.5 px-3 py-2 text-xs text-left text-slate-200 hover:bg-slate-800 rounded-lg transition">
+                            <i class="fa-solid fa-wand-magic-sparkles text-purple-400 w-4 text-center"></i>
+                            <div>
+                                <div class="font-bold">Upload Creative</div>
+                                <div class="text-[10px] text-slate-400">Gambar, Video, atau Carousel</div>
+                            </div>
+                        </button>
+                    </div>
+                </div>
 
-                <!-- Tombol Connect with Meta OAuth -->
-                <a href="{{ route('auth.meta.redirect') }}" class="inline-flex items-center space-x-2 bg-[#1877F2] hover:bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md transition shadow-blue-900/40" title="Login & Hubungkan Akun Iklan via Meta OAuth">
-                    <i class="fa-brands fa-facebook text-sm"></i>
-                    <span>Connect with Meta</span>
-                </a>
-
-                <!-- Tombol Buat Campaign Baru -->
-                <button type="button" onclick="document.getElementById('createCampaignModal').classList.remove('hidden')" class="inline-flex items-center space-x-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-emerald-950/40">
-                    <i class="fa-solid fa-plus"></i>
-                    <span>Buat Campaign</span>
-                </button>
-
-                <!-- Tombol Creative Studio (Upload Gambar, Video, Carousel) -->
-                <button type="button" onclick="document.getElementById('creativeStudioModal').classList.remove('hidden')" class="inline-flex items-center space-x-1.5 bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-500 hover:to-pink-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-purple-950/40" title="Upload Gambar, Video, atau Carousel langsung ke Meta Ads">
-                    <i class="fa-solid fa-wand-magic-sparkles"></i>
-                    <span>Upload Creative</span>
-                </button>
-
+                <!-- 3. Tombol Watchdog -->
                 <form action="{{ route('automation.watchdog') }}" method="POST">
                     @csrf
-                    <button type="submit" class="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-semibold px-3 py-2 rounded-lg shadow-md transition shadow-orange-950/40">
+                    <button type="submit" class="inline-flex items-center space-x-1.5 bg-slate-800 hover:bg-slate-700 text-amber-400 border border-slate-700 text-xs font-semibold px-3 py-2 rounded-lg transition" title="Jalankan Otomasi Kill-Switch & Scale">
                         <i class="fa-solid fa-bolt"></i>
-                        <span>Watchdog</span>
+                        <span class="text-slate-200">Watchdog</span>
                     </button>
                 </form>
+
+                <!-- 4. Dropdown: Pengaturan Akun & Koneksi Token -->
+                <div class="relative inline-block text-left" id="dropdownAccountContainer">
+                    <button type="button" onclick="toggleDropdown('dropdownAccountMenu')" class="p-2 bg-slate-800/80 hover:bg-slate-700 text-slate-300 hover:text-white rounded-lg border border-slate-700 transition" title="Pengaturan Akun & Koneksi">
+                        <i class="fa-solid fa-gear text-sm"></i>
+                    </button>
+                    <div id="dropdownAccountMenu" class="hidden absolute right-0 mt-2 w-60 rounded-xl bg-slate-900 border border-slate-800 shadow-2xl p-1.5 z-50 space-y-1">
+                        <button type="button" onclick="document.getElementById('manualTokenModal').classList.remove('hidden'); toggleDropdown('dropdownAccountMenu')" class="w-full flex items-center space-x-2 px-3 py-2 text-xs text-left text-slate-200 hover:bg-slate-800 rounded-lg transition">
+                            <i class="fa-solid fa-key text-amber-400 w-4 text-center"></i>
+                            <div>
+                                <div class="font-bold">Input Token Manual</div>
+                                <div class="text-[10px] text-slate-400">System User / Graph API Token</div>
+                            </div>
+                        </button>
+                        <a href="{{ route('auth.meta.redirect') }}" class="w-full flex items-center space-x-2 px-3 py-2 text-xs text-left text-slate-200 hover:bg-slate-800 rounded-lg transition">
+                            <i class="fa-brands fa-facebook text-blue-400 w-4 text-center"></i>
+                            <div>
+                                <div class="font-bold">Connect via OAuth</div>
+                                <div class="text-[10px] text-slate-400">Login browser Facebook</div>
+                            </div>
+                        </a>
+                    </div>
+                </div>
             </div>
         </div>
     </header>
@@ -801,8 +821,26 @@
     </main>
 
     <footer class="border-t border-slate-800 py-6 text-center text-xs text-slate-500">
-        Meta Ads AI Co-Pilot &copy; {{ date('Y') }} Built on Laravel 12 & Facebook Marketing API.
-    </footer>
+    <script>
+        function toggleDropdown(id) {
+            const el = document.getElementById(id);
+            if (el) {
+                el.classList.toggle('hidden');
+            }
+        }
+        window.addEventListener('click', function(e) {
+            const createContainer = document.getElementById('dropdownCreateContainer');
+            const createMenu = document.getElementById('dropdownCreateMenu');
+            if (createContainer && !createContainer.contains(e.target)) {
+                createMenu?.classList.add('hidden');
+            }
 
+            const accountContainer = document.getElementById('dropdownAccountContainer');
+            const accountMenu = document.getElementById('dropdownAccountMenu');
+            if (accountContainer && !accountContainer.contains(e.target)) {
+                accountMenu?.classList.add('hidden');
+            }
+        });
+    </script>
 </body>
 </html>
