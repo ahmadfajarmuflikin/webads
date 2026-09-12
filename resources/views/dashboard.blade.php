@@ -50,11 +50,16 @@
                     <span class="font-bold text-blue-400">Rp {{ number_format($account?->target_cpa ?? 0, 0, ',', '.') }}</span>
                 </div>
 
+                <a href="{{ route('auth.meta.redirect') }}" class="inline-flex items-center space-x-2 bg-[#1877F2] hover:bg-blue-600 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md transition shadow-blue-900/40" title="Login & Hubungkan Akun Iklan via Meta OAuth">
+                    <i class="fa-brands fa-facebook text-sm"></i>
+                    <span>Connect with Meta</span>
+                </a>
+
                 <form action="{{ route('automation.watchdog') }}" method="POST">
                     @csrf
                     <button type="submit" class="inline-flex items-center space-x-2 bg-gradient-to-r from-red-600 to-orange-600 hover:from-red-500 hover:to-orange-500 text-white text-xs font-semibold px-4 py-2 rounded-lg shadow-md transition shadow-orange-950/40">
                         <i class="fa-solid fa-bolt"></i>
-                        <span>Run Watchdog (Kill/Scale)</span>
+                        <span>Run Watchdog</span>
                     </button>
                 </form>
             </div>
@@ -63,11 +68,18 @@
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
 
-        <!-- Flash Message -->
+        <!-- Flash Messages -->
         @if(session('success'))
         <div class="bg-emerald-950/60 border border-emerald-500/40 text-emerald-300 px-4 py-3 rounded-xl flex items-center space-x-3 text-sm">
             <i class="fa-solid fa-circle-check text-emerald-400"></i>
             <span>{{ session('success') }}</span>
+        </div>
+        @endif
+
+        @if(session('error'))
+        <div class="bg-red-950/60 border border-red-500/40 text-red-300 px-4 py-3 rounded-xl flex items-center space-x-3 text-sm">
+            <i class="fa-solid fa-circle-exclamation text-red-400"></i>
+            <span>{{ session('error') }}</span>
         </div>
         @endif
 

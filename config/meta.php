@@ -13,6 +13,14 @@ return [
     'app_secret' => env('META_APP_SECRET', ''),
     'default_access_token' => env('META_DEFAULT_ACCESS_TOKEN', ''),
     'api_version' => env('META_API_VERSION', 'v20.0'),
+    'redirect_uri' => env('META_REDIRECT_URI', 'http://127.0.0.1:8000/auth/meta/callback'),
+    'scopes' => [
+        'ads_management',
+        'ads_read',
+        'read_insights',
+        'business_management',
+        'public_profile',
+    ],
 
     /*
     |--------------------------------------------------------------------------
