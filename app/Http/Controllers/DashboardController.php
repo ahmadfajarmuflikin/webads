@@ -148,23 +148,32 @@ class DashboardController extends Controller
                 \FacebookAds\Object\Fields\CampaignFields::DAILY_BUDGET,
             ]);
 
-            foreach ($campaigns as $camp) {
-                $cData = $camp->getData();
-                Campaign::updateOrCreate(
-                    ['meta_campaign_id' => $cData['id']],
-                    [
-                        'ad_account_id' => $account->id,
-                        'name' => $cData['name'] ?? 'Unnamed Campaign',
-                        'objective' => $cData['objective'] ?? 'OUTCOME_SALES',
-                        'status' => $cData['status'] ?? 'ACTIVE',
-                        'daily_budget' => isset($cData['daily_budget']) ? ($cData['daily_budget'] / 100) : null,
-                    ]
-                );
-            }
+            // Langsung sinkronkan campaigns, adsets, dan insights hari ini secara instan
+            $job = new \App\Jobs\SyncMetaInsightsJob($account->id, 'today');
+            $job->handle($this->clientService);
 
-            return redirect()->route('dashboard')->with('success', "🎉 Berhasil terhubung ke akun '{$account->name}' via Token! Live campaign berhasil disinkronkan.");
+            return redirect()->route('dashboard')->with('success', "🎉 Berhasil terhubung ke akun '{$account->name}' via Token! Semua Campaign, AdSet, dan Insights performa berhasil disinkronkan secara langsung.");
         } catch (\Throwable $e) {
             return redirect()->route('dashboard')->with('success', "Akun 'act_{$metaAccountId}' tersimpan di database lokal. Catatan koneksi: " . $e->getMessage());
         }
+    }
+
+    public function syncData(Request $request): RedirectResponse
+    {
+        $preset = $request->input('preset', 'today');
+        
+        $job = new \App\Jobs\SyncMetaInsightsJob(null, $preset);
+        $job->handle($this->clientService);
+
+        $presetLabels = [
+            'today' => 'Hari Ini',
+            'yesterday' => 'Kemarin',
+            'last_3d' => '3 Hari Terakhir',
+            'last_7d' => '7 Hari Terakhir',
+            'last_30d' => '30 Hari Terakhir',
+        ];
+        $label = $presetLabels[$preset] ?? $preset;
+
+        return redirect()->route('dashboard')->with('success', "🔄 Berhasil menyinkronkan data performa ({$label}) langsung dari Meta Ads!");
     }
 }

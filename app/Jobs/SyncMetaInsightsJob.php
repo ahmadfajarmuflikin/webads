@@ -4,9 +4,13 @@ namespace App\Jobs;
 
 use App\Models\AdAccount;
 use App\Models\AdInsightDaily;
+use App\Models\AdSet;
+use App\Models\Campaign;
 use App\Services\Meta\MetaAdsClientService;
 use FacebookAds\Object\AdAccount as MetaAccount;
+use FacebookAds\Object\Fields\AdSetFields;
 use FacebookAds\Object\Fields\AdsInsightsFields;
+use FacebookAds\Object\Fields\CampaignFields;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 use Illuminate\Support\Facades\Log;
@@ -33,6 +37,67 @@ class SyncMetaInsightsJob implements ShouldQueue
 
             try {
                 $metaAcc = new MetaAccount('act_' . $account->meta_account_id);
+
+                // 1. Sync Campaigns
+                try {
+                    $campaigns = $metaAcc->getCampaigns([
+                        CampaignFields::ID,
+                        CampaignFields::NAME,
+                        CampaignFields::OBJECTIVE,
+                        CampaignFields::STATUS,
+                        CampaignFields::DAILY_BUDGET,
+                    ]);
+
+                    foreach ($campaigns as $camp) {
+                        $cData = $camp->getData();
+                        Campaign::updateOrCreate(
+                            ['meta_campaign_id' => $cData['id']],
+                            [
+                                'ad_account_id' => $account->id,
+                                'name' => $cData['name'] ?? 'Campaign ' . $cData['id'],
+                                'objective' => $cData['objective'] ?? 'OUTCOME_SALES',
+                                'status' => $cData['status'] ?? 'ACTIVE',
+                                'daily_budget' => isset($cData['daily_budget']) ? ($cData['daily_budget'] / 100) : null,
+                            ]
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Could not sync campaigns: {$e->getMessage()}");
+                }
+
+                // 2. Sync AdSets
+                try {
+                    $adsets = $metaAcc->getAdSets([
+                        AdSetFields::ID,
+                        AdSetFields::CAMPAIGN_ID,
+                        AdSetFields::NAME,
+                        AdSetFields::STATUS,
+                        AdSetFields::DAILY_BUDGET,
+                        AdSetFields::OPTIMIZATION_GOAL,
+                    ]);
+
+                    foreach ($adsets as $adset) {
+                        $aData = $adset->getData();
+                        $campaign = Campaign::where('meta_campaign_id', $aData['campaign_id'])->first();
+                        if ($campaign) {
+                            AdSet::updateOrCreate(
+                                ['meta_adset_id' => $aData['id']],
+                                [
+                                    'campaign_id' => $campaign->id,
+                                    'ad_account_id' => $account->id,
+                                    'name' => $aData['name'] ?? 'AdSet ' . $aData['id'],
+                                    'status' => $aData['status'] ?? 'ACTIVE',
+                                    'daily_budget' => isset($aData['daily_budget']) ? ($aData['daily_budget'] / 100) : 100000,
+                                    'optimization_goal' => $aData['optimization_goal'] ?? 'OFFSITE_CONVERSIONS',
+                                ]
+                            );
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning("Could not sync adsets: {$e->getMessage()}");
+                }
+
+                // 3. Sync Insights (Performance Metrics)
                 $params = [
                     'date_preset' => $this->datePreset,
                     'level' => 'adset',

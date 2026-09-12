@@ -50,6 +50,22 @@
                     <span class="font-bold text-blue-400">Rp {{ number_format($account?->target_cpa ?? 0, 0, ',', '.') }}</span>
                 </div>
 
+                <!-- Form Sync Data Meta Langsung dari Dashboard (Tanpa Terminal) -->
+                <form action="{{ route('meta.sync_web') }}" method="POST" class="inline-flex items-center gap-1.5 bg-slate-800/90 border border-slate-700/80 p-0.5 rounded-lg">
+                    @csrf
+                    <select name="preset" class="bg-transparent text-slate-200 text-xs rounded-md px-2 py-1.5 focus:outline-none font-medium cursor-pointer">
+                        <option value="today" class="bg-slate-900">Hari Ini</option>
+                        <option value="yesterday" class="bg-slate-900">Kemarin</option>
+                        <option value="last_3d" class="bg-slate-900">3 Hari Terakhir</option>
+                        <option value="last_7d" selected class="bg-slate-900">7 Hari Terakhir</option>
+                        <option value="last_30d" class="bg-slate-900">30 Hari Terakhir</option>
+                    </select>
+                    <button type="submit" class="inline-flex items-center space-x-1.5 bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold px-3 py-1.5 rounded-md shadow-md transition shadow-indigo-950/40" title="Tarik data performa, spend, dan konversi terbaru dari Meta Ads">
+                        <i class="fa-solid fa-arrows-rotate text-xs"></i>
+                        <span>Sync Data</span>
+                    </button>
+                </form>
+
                 <!-- Tombol Input Token Manual (Bypass OAuth / Tanpa HTTPS) -->
                 <button type="button" onclick="document.getElementById('manualTokenModal').classList.remove('hidden')" class="inline-flex items-center space-x-2 bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs font-semibold px-3 py-2 rounded-lg border border-slate-700 shadow-md transition" title="Hubungkan menggunakan System User Token (Tanpa butuh HTTPS / OAuth)">
                     <i class="fa-solid fa-key text-amber-400"></i>
